@@ -167,6 +167,73 @@ html,body { width:100%; height:100%; overflow:hidden; background:var(--bg); colo
 .marker:hover .marker-diamond { background:var(--m-color,var(--accent)); }
 .marker-label { font-size:7px; font-weight:200; letter-spacing:0.06em; color:rgba(232,224,208,0.45); white-space:nowrap; margin-top:2px; }
 
+/* ── Dual track timeline ── */
+#timeline-tracks { display:flex; flex-direction:column; gap:4px; }
+#track-label-col { width:48px; flex-shrink:0; display:flex; flex-direction:column; gap:4px; }
+.track-label { font-size:7px; font-weight:200; letter-spacing:0.16em; text-transform:uppercase; color:rgba(232,224,208,0.25); display:flex; align-items:center; height:32px; }
+#track-col { flex:1; display:flex; flex-direction:column; gap:4px; min-width:0; }
+
+/* text track (segments) */
+#segments-track { position:relative; height:32px; width:100%; overflow:hidden; background:rgba(255,255,255,0.02); border-radius:2px; }
+
+/* shapes track */
+#shapes-track { position:relative; height:32px; width:100%; background:rgba(255,255,255,0.015); border-radius:2px; border:0.5px solid rgba(255,255,255,0.05); }
+
+/* transition blocks on shapes track */
+.trans-block {
+  position:absolute; top:2px; height:calc(100% - 4px);
+  border-radius:2px; cursor:pointer !important;
+  display:flex; align-items:center; overflow:hidden;
+  border:1px solid var(--tb-color,var(--accent));
+  background:rgba(0,0,0,0.3);
+  transition:filter 0.15s;
+  min-width:4px;
+}
+.trans-block:hover { filter:brightness(1.3); }
+.trans-block.selected { filter:brightness(1.5); box-shadow:0 0 8px var(--tb-color,var(--accent)); }
+
+/* left handle = transition start */
+.trans-handle-left {
+  position:absolute; left:0; top:0; bottom:0; width:6px;
+  background:var(--tb-color,var(--accent)); opacity:0.8;
+  cursor:ew-resize !important; flex-shrink:0;
+}
+/* right handle = shape final position */
+.trans-handle-right {
+  position:absolute; right:0; top:0; bottom:0; width:6px;
+  background:var(--tb-color,var(--accent));
+  cursor:ew-resize !important;
+}
+/* gradient fill between handles */
+.trans-fill {
+  position:absolute; left:6px; right:6px; top:0; bottom:0;
+  background:linear-gradient(to right, transparent, var(--tb-color,var(--accent)));
+  opacity:0.18;
+  pointer-events:none;
+}
+.trans-label {
+  position:absolute; left:10px; right:10px;
+  font-size:7px; font-weight:200; letter-spacing:0.08em;
+  color:rgba(232,224,208,0.7); white-space:nowrap; overflow:hidden;
+  text-overflow:ellipsis; pointer-events:none; line-height:32px;
+}
+
+/* playhead shared across both tracks */
+#playhead-line {
+  position:absolute; top:0; bottom:0; width:1px;
+  background:var(--accent); opacity:0.8; pointer-events:none;
+  z-index:10;
+}
+
+/* progress bar below tracks */
+#progress-track {
+  width:100%; height:20px; background:rgba(255,255,255,0.015);
+  border:0.5px solid rgba(255,255,255,0.05); border-radius:2px;
+  position:relative; cursor:pointer !important; overflow:hidden;
+}
+#progress-fill { position:absolute; left:0; top:0; height:100%; background:rgba(232,224,208,0.05); pointer-events:none; }
+#progress-cursor { position:absolute; top:0; width:1px; height:100%; background:var(--accent); opacity:0.7; pointer-events:none; }
+
 /* marker editor popup */
 #marker-editor {
   position:absolute; bottom:calc(100% + 10px); background:rgba(6,6,12,0.99);
@@ -387,14 +454,29 @@ html,body { width:100%; height:100%; overflow:hidden; background:var(--bg); colo
           </div>
         </div>
         <div id="timeline-area">
-          <!-- Text segments track -->
-          <div id="segments-track" style="width:100%;height:32px;position:relative;display:none;"></div>
+          <div id="timeline-tracks" style="display:flex;gap:6px;align-items:flex-start;">
+            <!-- track labels -->
+            <div id="track-label-col">
+              <div class="track-label">Text</div>
+              <div class="track-label">Forms</div>
+            </div>
+            <!-- track content -->
+            <div id="track-col">
+              <!-- PISTE 1 — Text segments -->
+              <div id="segments-track" style="display:none;"></div>
+              <!-- PISTE 2 — Shape transitions -->
+              <div id="shapes-track">
+                <div id="playhead-line" style="left:0%"></div>
+              </div>
+            </div>
+          </div>
+          <!-- playback progress bar -->
           <div id="progress-track">
             <div id="progress-fill"></div>
             <canvas id="waveform-canvas"></canvas>
             <div id="progress-cursor" style="left:0%"></div>
           </div>
-          <div id="markers-row">
+          <div id="markers-row" style="display:none;">
             <!-- markers injected here -->
             <div id="marker-editor">
               <div id="marker-editor-title">
@@ -780,9 +862,20 @@ function draw(){
       const noiseMult=isCube?0.35:chaos*3.4;
       const nx=noise2(p.x*0.003+tick*0.004*spd,p.phase)*noiseMult;
       const ny=noise2(p.y*0.003+tick*0.003*spd,p.phaseY)*noiseMult;
-      const pull=isCube?0.042*p.mass:0.024*p.mass*(1+chaos*0.3);
-      const fric=isCube?0.80:p.friction;
-      p.vx=(p.vx+dx*pull+nx)*fric;p.vy=(p.vy+dy*pull+ny)*fric;
+      // progressive transition pull override
+      let effectivePull = isCube?0.042*p.mass:0.024*p.mass*(1+chaos*0.3);
+      let effectiveFric = isCube?0.80:p.friction;
+      if(transitionPull && transitionPull.targets && transitionPull.targets[i]){
+        const tgt = transitionPull.targets[i];
+        const tdx = tgt[0]-p.x, tdy = tgt[1]-p.y;
+        const blendPull = effectivePull * transitionPull.progress;
+        const origPull = effectivePull * (1-transitionPull.progress);
+        p.vx = (p.vx + dx*origPull + tdx*blendPull + nx)*effectiveFric;
+        p.vy = (p.vy + dy*origPull + tdy*blendPull + ny)*effectiveFric;
+      } else {
+        p.vx=(p.vx+dx*effectivePull+nx)*effectiveFric;
+        p.vy=(p.vy+dy*effectivePull+ny)*effectiveFric;
+      }
     }
     p.x+=p.vx;p.y+=p.vy;
     const depth=p.z;
@@ -939,6 +1032,7 @@ function loadStudioState(id){
   renderSegments();
   renderMarkers();
   document.getElementById('segments-track').style.display = segments.length ? 'block' : 'none';
+  document.getElementById('timeline-hint').textContent = segments.length ? `${segments.length} segments — click shapes track to add transitions` : 'Parse script → timeline';
   document.getElementById('studio-total').textContent = fmtTime(totalDuration);
   document.getElementById('studio-elapsed').textContent = '0:00';
   document.getElementById('progress-cursor').style.left = '0%';
@@ -1233,7 +1327,16 @@ progressTrack.addEventListener('click',e=>{
   addMarker(pos);
 });
 document.getElementById('btn-add-marker').addEventListener('click',()=>{
-  addMarker(currentPos+0.05>1?0.5:currentPos+0.05);
+  addMarker(currentPos+0.12>1?0.5:currentPos+0.12);
+});
+
+// click on shapes track to add new transition
+document.getElementById('shapes-track').addEventListener('click',e=>{
+  if(e.target.dataset.role) return; // ignore handle clicks
+  if(e.target.closest('.trans-block')) return; // ignore block clicks
+  const rect = e.currentTarget.getBoundingClientRect();
+  const pos = Math.max(0.06, Math.min(0.99, (e.clientX-rect.left)/rect.width));
+  addMarker(pos);
 });
 
 function addMarker(pos){
@@ -1245,20 +1348,86 @@ function addMarker(pos){
 }
 
 function renderMarkers(){
-  const row=document.getElementById('markers-row');
-  // keep editor
-  const editor=document.getElementById('marker-editor');
-  row.innerHTML='';row.appendChild(editor);
+  // legacy — now handled by renderTransBlocks
+  renderTransBlocks();
+}
+
+function renderTransBlocks(){
+  const track = document.getElementById('shapes-track');
+  // preserve playhead
+  const ph = document.getElementById('playhead-line');
+  track.innerHTML = '';
+  track.appendChild(ph);
+
   markers.sort((a,b)=>a.pos-b.pos);
   markers.forEach(m=>{
-    const el=document.createElement('div');
-    el.className='marker';el.dataset.id=m.id;
-    el.style.left=(m.pos*100)+'%';
-    el.style.setProperty('--m-color',m.color);
-    el.innerHTML=`<div class="marker-diamond"></div><div class="marker-label">${m.label||fmtTime(m.pos*(totalDuration||100))}</div>`;
-    el.addEventListener('click',e=>{e.stopPropagation();openMarkerEditorPatched(m.id);});
-    row.appendChild(el);
+    if(m.transStart === undefined) m.transStart = Math.max(0, m.pos - 0.08);
+
+    const block = document.createElement('div');
+    block.className = 'trans-block';
+    block.dataset.id = m.id;
+    block.style.setProperty('--tb-color', m.color||'var(--accent)');
+    block.style.left = (m.transStart*100)+'%';
+    block.style.width = ((m.pos - m.transStart)*100)+'%';
+
+    block.innerHTML = `
+      <div class="trans-handle-left" data-role="start" data-id="${m.id}"></div>
+      <div class="trans-fill"></div>
+      <div class="trans-label">${m.label||m.shape}</div>
+      <div class="trans-handle-right" data-role="end" data-id="${m.id}"></div>
+    `;
+
+    // click block body = open editor
+    block.addEventListener('click', e=>{
+      if(e.target.dataset.role) return;
+      e.stopPropagation();
+      openMarkerEditorPatched(m.id);
+    });
+
+    track.appendChild(block);
   });
+
+  // drag handles
+  initHandleDrag();
+}
+
+// ── Handle drag ──
+function initHandleDrag(){
+  const track = document.getElementById('shapes-track');
+  let dragging = null; // {id, role}
+
+  track.addEventListener('mousedown', e=>{
+    const role = e.target.dataset.role;
+    const mid = e.target.dataset.id;
+    if(!role||!mid) return;
+    dragging = {id:parseInt(mid)||mid, role};
+    e.stopPropagation();
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e=>{
+    if(!dragging) return;
+    const rect = track.getBoundingClientRect();
+    const pos = Math.max(0, Math.min(1, (e.clientX-rect.left)/rect.width));
+    const m = markers.find(x=>x.id===dragging.id);
+    if(!m) return;
+
+    if(dragging.role==='start'){
+      m.transStart = Math.min(pos, m.pos - 0.01);
+    } else {
+      m.pos = Math.max(pos, m.transStart + 0.01);
+    }
+    renderTransBlocks();
+    // update playhead
+    updatePlayheadLine(currentPos);
+  });
+
+  document.addEventListener('mouseup', ()=>{ dragging=null; });
+}
+
+function updatePlayheadLine(pos){
+  const ph = document.getElementById('playhead-line');
+  if(ph) ph.style.left = (pos*100)+'%';
 }
 
 // current color being edited
@@ -1581,6 +1750,7 @@ function updatePlayhead(pos){
   document.getElementById('progress-cursor').style.left=(pos*100)+'%';
   document.getElementById('progress-fill').style.width=(pos*100)+'%';
   document.getElementById('studio-elapsed').textContent=fmtTime(pos*(totalDuration||60));
+  updatePlayheadLine(pos);
   checkMarkersAt(pos);
 }
 
@@ -1595,6 +1765,17 @@ function setPlayhead(pos){
 // ── Marker trigger at position ──
 let lastTriggeredMarker=null;
 function checkMarkersAt(pos){
+  // Check for transition start — begin progressive morph
+  markers.forEach(m=>{
+    const tStart = m.transStart !== undefined ? m.transStart : m.pos - 0.05;
+    const tEnd = m.pos;
+    if(pos >= tStart && pos <= tEnd){
+      const progress = (pos - tStart) / (tEnd - tStart); // 0→1
+      applyProgressiveTransition(m, progress);
+    }
+  });
+
+  // Check for final form reached
   const tolerance=0.012;
   const hit=markers.find(m=>Math.abs(m.pos-pos)<tolerance&&m.id!==lastTriggeredMarker);
   if(hit){
@@ -1602,6 +1783,27 @@ function checkMarkersAt(pos){
     triggerMarker(hit);
     setTimeout(()=>{if(lastTriggeredMarker===hit.id)lastTriggeredMarker=null;},800);
   }
+}
+
+// Progressive transition — particles drift toward new form smoothly
+let transitionPull = null; // override pull during transition
+function applyProgressiveTransition(m, progress){
+  // easeInOut
+  const eased = progress < 0.5
+    ? 2*progress*progress
+    : 1 - Math.pow(-2*progress+2,2)/2;
+
+  // set targets to new shape if not already done
+  if(!transitionPull || transitionPull.id !== m.id){
+    transitionPull = { id: m.id, progress: 0 };
+    // precompute targets for this marker's shape
+    const subj = subjects.find(s=>s.shape===m.shape);
+    if(subj && m.shape !== 'text' && m.shape !== 'custom'){
+      const newTargets = computeTargets({...subj, accent:m.color||subj.accent, rgb:hexToRgb(m.color||subj.accent)});
+      transitionPull.targets = newTargets;
+    }
+  }
+  if(transitionPull) transitionPull.progress = eased;
 }
 
 function triggerMarker(m){
