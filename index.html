@@ -1,3 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Insight — How I see the world</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Outfit:wght@200;300;400&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 :root {
@@ -10,7 +18,7 @@ html,body { width:100%; height:100%; overflow:hidden; background:var(--bg); colo
 #cursor { position:fixed; width:7px; height:7px; background:var(--accent); border-radius:50%; pointer-events:none; z-index:9999; transform:translate(-50%,-50%); transition:background 0.5s; mix-blend-mode:screen; }
 #cursor-ring { position:fixed; width:30px; height:30px; border:0.5px solid var(--accent); border-radius:50%; pointer-events:none; z-index:9998; transform:translate(-50%,-50%); opacity:0.35; transition:border-color 0.5s; }
 
-#app { display:grid; grid-template-rows:62px 1fr; grid-template-columns:1fr var(--sidebar-w); height:100vh; opacity:0; transition:opacity 1s ease; }
+#app { display:grid; grid-template-rows:62px 1fr; grid-template-columns:1fr var(--sidebar-w); height:100vh; opacity:0; transition:opacity 1s ease; position:relative; }
 #app.ready { opacity:1; }
 
 /* ── Topbar ── */
@@ -77,93 +85,87 @@ html,body { width:100%; height:100%; overflow:hidden; background:var(--bg); colo
    STUDIO PANEL
 ══════════════════════════════════════ */
 #studio-panel {
-  grid-column:1/3;
-  height:0;
-  overflow:hidden;
-  background:rgba(5,5,10,0.98);
-  border-top:0.5px solid var(--border);
-  transition:height 0.45s cubic-bezier(0.16,1,0.3,1);
-  display:flex;
-  flex-direction:column;
+  position:fixed; bottom:0; left:0; right:0; height:0; overflow:hidden;
+  background:rgba(5,5,10,0.96); border-top:0.5px solid var(--border);
+  transition:height 0.45s cubic-bezier(0.16,1,0.3,1); display:flex; flex-direction:column;
+  z-index:500; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
 }
 #studio-panel.open { height:380px; }
-
 #studio-inner { display:flex; flex:1; overflow:hidden; min-height:0; }
 
-/* Left — mode tabs + inputs */
-#studio-left { width:320px; border-right:0.5px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; }
-#studio-tabs { display:flex; border-bottom:0.5px solid var(--border); }
-.studio-tab { flex:1; padding:12px; font-size:9px; font-weight:300; letter-spacing:0.22em; text-transform:uppercase; color:rgba(232,224,208,0.83); text-align:center; cursor:pointer !important; transition:all 0.25s; border-bottom:1.5px solid transparent; }
-.studio-tab:hover { color:rgba(232,224,208,0.7); }
-.studio-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+/* ── Subject selector bar inside studio ── */
+#studio-subject-bar {
+  display:flex; align-items:center; gap:0; flex-shrink:0;
+  border-bottom:0.5px solid var(--border); padding:0 16px; background:rgba(5,5,10,0.98);
+}
+#studio-subject-bar-label { font-size:8px; font-weight:200; letter-spacing:0.28em; text-transform:uppercase; color:rgba(232,224,208,0.25); margin-right:16px; white-space:nowrap; padding:10px 0; }
+.studio-subj-tab {
+  display:flex; align-items:center; gap:7px; padding:10px 16px;
+  font-size:9px; font-weight:300; letter-spacing:0.16em; text-transform:uppercase;
+  cursor:pointer !important; transition:all 0.25s; border-bottom:2px solid transparent;
+  color:rgba(232,224,208,0.3); margin-bottom:-0.5px;
+}
+.studio-subj-tab:hover { color:rgba(232,224,208,0.65); }
+.studio-subj-tab.active { color:var(--subj-accent,var(--accent)); border-bottom-color:var(--subj-accent,var(--accent)); }
+.studio-subj-dot { width:5px; height:5px; border-radius:50%; background:var(--subj-accent,var(--accent)); flex-shrink:0; opacity:0.7; }
+.studio-subj-tab.active .studio-subj-dot { opacity:1; }
 
-#studio-content { flex:1; overflow:hidden; position:relative; }
-.studio-pane { position:absolute; inset:0; padding:20px; display:flex; flex-direction:column; gap:14px; opacity:0; pointer-events:none; transition:opacity 0.3s; }
-.studio-pane.active { opacity:1; pointer-events:all; }
-
-.studio-label { font-size:8px; font-weight:300; letter-spacing:0.28em; text-transform:uppercase; color:rgba(232,224,208,0.83); margin-bottom:4px; }
+/* Left — script */
+#studio-left { width:300px; border-right:0.5px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; }
+#studio-left-header { padding:10px 14px 8px; border-bottom:0.5px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.studio-label { font-size:8px; font-weight:300; letter-spacing:0.28em; text-transform:uppercase; color:rgba(232,224,208,0.45); }
+#granularity-tabs { display:flex; border:0.5px solid rgba(255,255,255,0.08); border-radius:2px; overflow:hidden; }
+.gran-tab { padding:4px 8px; font-size:8px; font-weight:300; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer !important; color:rgba(232,224,208,0.3); background:transparent; transition:all 0.2s; border:none; }
+.gran-tab:hover { color:rgba(232,224,208,0.65); }
+.gran-tab.active { color:var(--accent); background:rgba(255,255,255,0.05); }
+#studio-script-wrap { flex:1; padding:12px 14px; display:flex; flex-direction:column; gap:8px; min-height:0; }
 .studio-textarea {
-  width:100%; flex:1; background:rgba(255,255,255,0.03); border:0.5px solid rgba(255,255,255,0.08);
-  color:rgba(232,224,208,0.7); font-family:'Outfit',sans-serif; font-size:12px; font-weight:200;
-  line-height:1.7; padding:10px 12px; resize:none; outline:none; border-radius:2px;
+  flex:1; min-height:0; background:rgba(255,255,255,0.03); border:0.5px solid rgba(255,255,255,0.08);
+  color:rgba(232,224,208,0.7); font-family:'Outfit',sans-serif; font-size:11px; font-weight:200;
+  line-height:1.7; padding:8px 10px; resize:none; outline:none; border-radius:2px;
   transition:border-color 0.3s; cursor:text !important;
 }
-.studio-textarea:focus { border-color:rgba(232,224,208,0.80); }
-.studio-textarea::placeholder { color:rgba(232,224,208,0.78); }
-
-/* audio upload zone */
-#audio-drop {
-  border:0.5px dashed rgba(255,255,255,0.12); border-radius:2px; padding:20px;
-  text-align:center; cursor:pointer !important; transition:all 0.3s;
-  display:flex; flex-direction:column; align-items:center; gap:8px;
+.studio-textarea:focus { border-color:rgba(232,224,208,0.35); }
+.studio-textarea::placeholder { color:rgba(232,224,208,0.2); }
+#btn-parse-script {
+  padding:6px; font-size:8px; font-weight:300; letter-spacing:0.2em; text-transform:uppercase;
+  border:0.5px solid rgba(255,255,255,0.1); border-radius:2px; cursor:pointer !important;
+  color:rgba(232,224,208,0.4); background:transparent; transition:all 0.25s; width:100%; flex-shrink:0;
 }
-#audio-drop:hover, #audio-drop.drag-over { border-color:var(--accent); background:rgba(255,255,255,0.02); }
-#audio-drop-label { font-size:10px; font-weight:200; letter-spacing:0.18em; color:rgba(232,224,208,0.86); text-transform:uppercase; }
-#audio-drop-sub { font-size:9px; color:rgba(232,224,208,0.78); letter-spacing:0.1em; }
-#audio-input { display:none; }
-
-/* audio player */
-#audio-player-wrap { display:none; flex-direction:column; gap:8px; }
-#audio-filename { font-size:9px; font-weight:200; letter-spacing:0.14em; color:rgba(232,224,208,0.88); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-#audio-controls { display:flex; align-items:center; gap:12px; }
-#btn-play { width:28px; height:28px; border:0.5px solid rgba(255,255,255,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer !important; transition:all 0.2s; flex-shrink:0; }
-#btn-play:hover { border-color:var(--accent); }
-#btn-play svg { width:10px; height:10px; fill:rgba(232,224,208,0.80); margin-left:1px; }
-#btn-play.playing svg { margin-left:0; }
-#audio-time { font-size:9px; font-weight:200; letter-spacing:0.1em; color:rgba(232,224,208,0.83); min-width:70px; }
+#btn-parse-script:hover { color:var(--accent); border-color:var(--accent); }
 
 /* Right — timeline */
 #studio-right { flex:1; display:flex; flex-direction:column; min-width:0; }
-#timeline-header { padding:14px 20px 10px; border-bottom:0.5px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
-#timeline-label { font-size:8px; font-weight:300; letter-spacing:0.28em; text-transform:uppercase; color:rgba(232,224,208,0.80); }
-#timeline-hint { font-size:8px; font-weight:200; letter-spacing:0.12em; color:rgba(232,224,208,0.77); }
+#timeline-header { padding:10px 18px 8px; border-bottom:0.5px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+#timeline-label { font-size:8px; font-weight:300; letter-spacing:0.28em; text-transform:uppercase; color:rgba(232,224,208,0.45); }
+#timeline-hint { font-size:8px; font-weight:200; letter-spacing:0.12em; color:rgba(232,224,208,0.28); }
+#timeline-area { flex:1; position:relative; padding:0 18px; display:flex; flex-direction:column; justify-content:center; gap:8px; }
 
-#timeline-area { flex:1; position:relative; padding:0 20px; display:flex; flex-direction:column; justify-content:center; gap:10px; }
+#segments-track { overflow:hidden; }
+.seg-block {
+  position:absolute; top:0; height:100%;
+  background:rgba(255,255,255,0.03); border-left:0.5px solid rgba(255,255,255,0.06);
+  cursor:pointer !important; transition:background 0.2s; display:flex; align-items:center; overflow:hidden;
+}
+.seg-block:hover { background:rgba(255,255,255,0.08); }
+.seg-block.assigned { border-top:2px solid var(--seg-color,var(--accent)); background:rgba(255,255,255,0.05); }
+.seg-text { font-size:7px; font-weight:200; letter-spacing:0.05em; color:rgba(232,224,208,0.45); padding:0 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none; }
+.seg-block.assigned .seg-text { color:rgba(232,224,208,0.85); }
 
-/* waveform / text progress bar */
 #progress-track {
-  width:100%; height:40px; background:rgba(255,255,255,0.02);
+  width:100%; height:30px; background:rgba(255,255,255,0.02);
   border:0.5px solid rgba(255,255,255,0.06); border-radius:2px;
   position:relative; cursor:pointer !important; overflow:hidden;
 }
-#progress-fill { position:absolute; left:0; top:0; height:100%; background:rgba(232,224,208,0.73); pointer-events:none; }
-#progress-cursor { position:absolute; top:0; width:1px; height:100%; background:var(--accent); opacity:0.6; pointer-events:none; transition:left 0.1s linear; }
+#progress-fill { position:absolute; left:0; top:0; height:100%; background:rgba(232,224,208,0.05); pointer-events:none; }
+#progress-cursor { position:absolute; top:0; width:1px; height:100%; background:var(--accent); opacity:0.7; pointer-events:none; }
 #waveform-canvas { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 
-/* markers row */
-#markers-row { position:relative; height:28px; width:100%; }
-.marker {
-  position:absolute; top:0; transform:translateX(-50%);
-  display:flex; flex-direction:column; align-items:center; gap:2px;
-  cursor:pointer !important;
-}
-.marker-diamond {
-  width:8px; height:8px; border:1px solid var(--m-color,var(--accent));
-  transform:rotate(45deg); background:rgba(5,5,10,0.9);
-  transition:background 0.2s;
-}
+#markers-row { position:relative; height:22px; width:100%; }
+.marker { position:absolute; top:0; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer !important; }
+.marker-diamond { width:7px; height:7px; border:1px solid var(--m-color,var(--accent)); transform:rotate(45deg); background:rgba(5,5,10,0.9); transition:background 0.2s; }
 .marker:hover .marker-diamond { background:var(--m-color,var(--accent)); }
-.marker-label { font-size:7px; font-weight:200; letter-spacing:0.08em; color:rgba(232,224,208,0.86); white-space:nowrap; margin-top:2px; }
+.marker-label { font-size:7px; font-weight:200; letter-spacing:0.06em; color:rgba(232,224,208,0.45); white-space:nowrap; margin-top:2px; }
 
 /* marker editor popup */
 #marker-editor {
@@ -233,9 +235,7 @@ html,body { width:100%; height:100%; overflow:hidden; background:var(--bg); colo
 #btn-studio-welcome:hover { color:#b8a47a; border-color:#b8a47a; }
 #btn-studio-close:hover { color:rgba(232,224,208,0.8); border-color:rgba(232,224,208,0.71); }
 /* granularity tabs */
-.gran-tab { padding:4px 8px; font-size:8px; font-weight:300; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer !important; color:rgba(232,224,208,0.81); background:transparent; transition:all 0.2s; border:none; }
-.gran-tab:hover { color:rgba(232,224,208,0.88); }
-.gran-tab.active { color:var(--accent); background:rgba(255,255,255,0.05); }
+/* gran-tab styles defined above */
 
 /* segments track */
 #segments-track { overflow:hidden; }
@@ -351,52 +351,29 @@ html,body { width:100%; height:100%; overflow:hidden; background:var(--bg); colo
 
   <!-- ══ STUDIO PANEL ══ -->
   <div id="studio-panel">
+
+    <!-- Subject selector bar -->
+    <div id="studio-subject-bar">
+      <div id="studio-subject-bar-label">Editing</div>
+      <!-- tabs injected by JS -->
+    </div>
+
     <div id="studio-inner">
 
-      <!-- LEFT: inputs -->
+      <!-- LEFT: script editor -->
       <div id="studio-left">
-        <div id="studio-tabs">
-          <div class="studio-tab active" data-pane="text">Text</div>
-          <div class="studio-tab" data-pane="audio">Audio</div>
+        <div id="studio-left-header">
+          <div class="studio-label">Script</div>
+          <div id="granularity-tabs">
+            <div class="gran-tab active" data-gran="word" title="Word by word">W</div>
+            <div class="gran-tab" data-gran="sentence" title="Sentence by sentence">S</div>
+            <div class="gran-tab" data-gran="paragraph" title="Paragraph by paragraph">P</div>
+            <div class="gran-tab" data-gran="deep" title="Free selection">D</div>
+          </div>
         </div>
-        <div id="studio-content">
-
-          <!-- Text pane -->
-          <div class="studio-pane active" id="pane-text">
-            <div style="display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;">
-              <div style="display:flex;align-items:center;justify-content:space-between;">
-                <div class="studio-label">Script</div>
-                <div id="granularity-tabs" style="display:flex;gap:0;border:0.5px solid rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;">
-                  <div class="gran-tab active" data-gran="word" title="Word">W</div>
-                  <div class="gran-tab" data-gran="sentence" title="Sentence">S</div>
-                  <div class="gran-tab" data-gran="paragraph" title="Paragraph">P</div>
-                  <div class="gran-tab" data-gran="deep" title="Deep — free select">D</div>
-                </div>
-              </div>
-              <textarea class="studio-textarea" id="script-input" placeholder="Paste your script here…" style="height:100px;" spellcheck="false"></textarea>
-              <button id="btn-parse-script" style="padding:6px;font-size:8px;font-weight:300;letter-spacing:0.2em;text-transform:uppercase;border:0.5px solid rgba(255,255,255,0.1);border-radius:2px;cursor:pointer!important;color:rgba(232,224,208,0.35);background:transparent;transition:all 0.25s;width:100%;">Parse script → timeline</button>
-            </div>
-          </div>
-
-          <!-- Audio pane -->
-          <div class="studio-pane" id="pane-audio">
-            <div id="audio-drop">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(232,224,208,0.25)" stroke-width="1" style="cursor:pointer!important"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-              <div id="audio-drop-label">Drop audio file here</div>
-              <div id="audio-drop-sub">MP3 · WAV · OGG</div>
-              <input type="file" id="audio-input" accept="audio/*">
-            </div>
-            <div id="audio-player-wrap">
-              <div id="audio-filename"></div>
-              <div id="audio-controls">
-                <div id="btn-play">
-                  <svg id="play-icon" viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12" fill="rgba(232,224,208,0.7)"/></svg>
-                </div>
-                <div id="audio-time">0:00 / 0:00</div>
-              </div>
-            </div>
-          </div>
-
+        <div id="studio-script-wrap">
+          <textarea class="studio-textarea" id="script-input" placeholder="Paste your script for this subject here…" spellcheck="false"></textarea>
+          <button id="btn-parse-script">Parse → timeline</button>
         </div>
       </div>
 
@@ -487,7 +464,7 @@ html,body { width:100%; height:100%; overflow:hidden; background:var(--bg); colo
 
                 <div class="me-src-pane" id="me-src-svg">
                   <textarea id="me-svg-input" placeholder="Paste SVG path data here: <svg>…</svg> or just the d= attribute"></textarea>
-                  <div id="me-generate-row">
+                  <div id="me-generate-row-svg">
                     <button id="btn-me-parse-svg">Parse SVG</button>
                     <div id="me-status-svg"></div>
                   </div>
@@ -546,6 +523,22 @@ html,body { width:100%; height:100%; overflow:hidden; background:var(--bg); colo
 </div>
 
 <audio id="audio-el" style="display:none"></audio>
+
+<!-- Hidden audio UI elements (kept for JS compatibility) -->
+<div style="display:none">
+  <div id="audio-drop">
+    <input type="file" id="audio-input" accept="audio/*">
+    <div id="audio-drop-label"></div>
+    <div id="audio-drop-sub"></div>
+  </div>
+  <div id="audio-player-wrap">
+    <div id="audio-filename"></div>
+    <div id="audio-controls">
+      <div id="btn-play"><svg id="play-icon" viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg></div>
+      <div id="audio-time">0:00 / 0:00</div>
+    </div>
+  </div>
+</div>
 
 <script>
 // ══════════════════════════════════════════════════════
@@ -883,42 +876,113 @@ const shapeColors={human:'#b8a47a',vortex:'#9b3f3f',expand:'#6b9ea8',cube:'#00c8
 function fmtTime(s){const m=Math.floor(s/60),sec=Math.floor(s%60);return`${m}:${sec.toString().padStart(2,'0')}`;}
 
 // ══════════════════════════════════════════════════════
-// SCRIPT PARSER — text → timeline segments
+// PER-SUBJECT STUDIO DATA
 // ══════════════════════════════════════════════════════
-const WPM = 130; // words per minute — standard presentation pace
-let segments = []; // [{id, text, startPos, endPos, type, markerId}]
-let granularity = 'word'; // word | sentence | paragraph | deep
+const WPM = 130;
+let studioSubjectId = 0; // which subject is being edited in Studio
+
+// subjectData[id] = { script, segments, markers, granularity, totalDuration }
+const subjectData = {};
+subjects.forEach(s=>{ subjectData[s.id]={ script:'', segments:[], markers:[], granularity:'sentence', totalDuration:0 }; });
+
+function getSD(){ return subjectData[studioSubjectId]; }
+
+// ── Build subject selector tabs ──
+function buildSubjectSelector(){
+  const bar = document.getElementById('studio-subject-bar');
+  subjects.forEach(s=>{
+    const tab = document.createElement('div');
+    tab.className = 'studio-subj-tab';
+    tab.dataset.id = s.id;
+    tab.style.setProperty('--subj-accent', s.accent);
+    tab.innerHTML = `<span class="studio-subj-dot"></span>${s.title}`;
+    tab.addEventListener('click',()=>switchStudioSubject(s.id));
+    bar.appendChild(tab);
+  });
+}
+
+function switchStudioSubject(id){
+  // save current state
+  saveCurrentStudioState();
+  studioSubjectId = id;
+  // update tab UI
+  document.querySelectorAll('.studio-subj-tab').forEach(t=>{
+    t.classList.toggle('active', parseInt(t.dataset.id)===id);
+  });
+  // load state for this subject
+  loadStudioState(id);
+  // apply subject accent to studio
+  const subj = subjects.find(s=>s.id===id);
+  if(subj) document.documentElement.style.setProperty('--accent', subj.accent);
+}
+
+function saveCurrentStudioState(){
+  const sd = getSD();
+  sd.script = document.getElementById('script-input').value;
+  sd.segments = segments.map(s=>({...s}));
+  sd.markers = markers.map(m=>({...m}));
+  sd.granularity = granularity;
+  sd.totalDuration = totalDuration;
+}
+
+function loadStudioState(id){
+  const sd = subjectData[id];
+  // script
+  document.getElementById('script-input').value = sd.script || '';
+  // granularity
+  granularity = sd.granularity || 'sentence';
+  document.querySelectorAll('.gran-tab').forEach(t=>t.classList.toggle('active', t.dataset.gran===granularity));
+  // segments
+  segments = sd.segments || [];
+  markers = sd.markers || [];
+  totalDuration = sd.totalDuration || 0;
+  renderSegments();
+  renderMarkers();
+  document.getElementById('segments-track').style.display = segments.length ? 'block' : 'none';
+  document.getElementById('studio-total').textContent = fmtTime(totalDuration);
+  document.getElementById('studio-elapsed').textContent = '0:00';
+  document.getElementById('progress-cursor').style.left = '0%';
+  document.getElementById('progress-fill').style.width = '0%';
+  currentPos = 0;
+  if(totalDuration > 0){
+    document.getElementById('timeline-hint').textContent = `${segments.length} segments — click to assign`;
+  } else {
+    document.getElementById('timeline-hint').textContent = 'Parse script → timeline';
+  }
+}
+
+// ── Script parser ──
+let segments = [];
+let granularity = 'sentence';
 let deepSelecting = false;
 let deepStart = null;
 
-// ── Granularity tabs ──
 document.querySelectorAll('.gran-tab').forEach(tab=>{
   tab.addEventListener('click',()=>{
     document.querySelectorAll('.gran-tab').forEach(t=>t.classList.remove('active'));
     tab.classList.add('active');
-    granularity=tab.dataset.gran;
-    if(segments.length) renderSegments();
-    if(granularity==='deep'){
-      document.getElementById('timeline-hint').textContent='Select text in script, then click segment';
-    } else {
-      document.getElementById('timeline-hint').textContent='Parse script or click track to add marker';
-    }
+    granularity = tab.dataset.gran;
+    getSD().granularity = granularity;
+    document.getElementById('timeline-hint').textContent = granularity==='deep'
+      ? 'Click first segment, then last to merge'
+      : 'Click Parse to apply new granularity';
   });
 });
 
-// ── Parse script ──
 document.getElementById('btn-parse-script').addEventListener('click',()=>{
-  const text=document.getElementById('script-input').value.trim();
-  if(!text){ return; }
-  segments=parseScript(text, granularity);
+  const text = document.getElementById('script-input').value.trim();
+  if(!text) return;
+  const activeGran = document.querySelector('.gran-tab.active')?.dataset.gran || granularity;
+  granularity = activeGran;
+  segments = parseScript(text, granularity==='deep'?'sentence':granularity);
+  getSD().granularity = granularity;
   renderSegments();
-  // set total duration based on word count
-  const wordCount=text.split(/\s+/).filter(w=>w.length>0).length;
-  totalDuration=Math.ceil((wordCount/WPM)*60);
-  document.getElementById('studio-total').textContent=fmtTime(totalDuration);
-  document.getElementById('audio-time').textContent=`0:00 / ${fmtTime(totalDuration)}`;
-  document.getElementById('segments-track').style.display='block';
-  document.getElementById('timeline-hint').textContent=`${segments.length} segments — click to assign`;
+  const wordCount = text.split(/\s+/).filter(w=>w.length>0).length;
+  totalDuration = Math.ceil((wordCount/WPM)*60);
+  document.getElementById('studio-total').textContent = fmtTime(totalDuration);
+  document.getElementById('segments-track').style.display = 'block';
+  document.getElementById('timeline-hint').textContent = `${segments.length} segments — click to assign`;
+  getSD().totalDuration = totalDuration;
 });
 
 function parseScript(text, gran){
@@ -1076,7 +1140,15 @@ document.getElementById('studio-btn').addEventListener('click',()=>{
   studioOpen=!studioOpen;
   document.getElementById('studio-panel').classList.toggle('open',studioOpen);
   document.getElementById('studio-btn').classList.toggle('active',studioOpen);
-  setTimeout(()=>{resize();if(currentSubj&&currentSubj.shape==='cube')targets=cubeTargets(W/2,H/2-10);},460);
+  if(studioOpen){
+    // default to current subject if one is active
+    const targetId = currentSubj&&currentSubj.id>=0 ? currentSubj.id : 0;
+    if(!document.querySelector('.studio-subj-tab')){
+      buildSubjectSelector();
+    }
+    switchStudioSubject(targetId);
+  }
+  setTimeout(()=>{resize();},460);
 });
 
 // ── Tabs ──
@@ -1621,30 +1693,20 @@ function showToast(msg, duration=2000){
 }
 
 function buildSaveData(){
+  saveCurrentStudioState();
   return {
-    script: document.getElementById('script-input').value,
-    markers: markers.map(m=>({...m})),
-    segments: segments.map(s=>({...s})),
-    granularity,
-    audioFilename: document.getElementById('audio-filename').textContent||'',
+    subjectData: JSON.parse(JSON.stringify(subjectData)),
     savedAt: new Date().toLocaleString()
   };
 }
 
 function restoreSaveData(data){
   if(!data) return;
-  // script
-  if(data.script) document.getElementById('script-input').value=data.script;
-  if(data.segments&&data.segments.length){ segments=data.segments; granularity=data.granularity||'word'; document.querySelectorAll('.gran-tab').forEach(t=>t.classList.toggle('active',t.dataset.gran===granularity)); renderSegments(); document.getElementById('segments-track').style.display='block'; }
-  if(data.markers){
-    markers=data.markers.map(m=>({...m, id:m.id||Date.now()+Math.random()}));
-    renderMarkers();
-  }
-  // audio note
-  if(data.audioFilename){
-    document.getElementById('audio-filename').textContent='⚠ Re-upload: '+data.audioFilename;
-    document.getElementById('audio-drop').style.display='none';
-    document.getElementById('audio-player-wrap').style.display='flex';
+  if(data.subjectData){
+    Object.keys(data.subjectData).forEach(id=>{
+      if(subjectData[id]) subjectData[id]={...subjectData[id],...data.subjectData[id]};
+    });
+    loadStudioState(studioSubjectId);
   }
 }
 
@@ -1767,10 +1829,15 @@ document.getElementById('btn-studio-welcome').addEventListener('click',()=>{
 
 document.getElementById('btn-studio-close').addEventListener('click',()=>{
   if(isPlaying){ isPlaying=false; audioEl.pause(); if(playInterval){clearInterval(playInterval);playInterval=null;} document.getElementById('btn-studio-play').classList.remove('playing'); document.getElementById('btn-studio-play').innerHTML='<svg width="8" height="10" viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12" fill="currentColor"/></svg> Play'; }
+  saveCurrentStudioState();
   studioOpen=false;
   document.getElementById('studio-panel').classList.remove('open');
   document.getElementById('studio-btn').classList.remove('active');
-  setTimeout(()=>{resize(); if(currentSubj&&currentSubj.id>=0)targets=computeTargets(currentSubj); else if(welcomeMode)targets=textTargets('Welcome','to Insight');},460);
+  // go back to the subject being edited
+  const subj=subjects.find(s=>s.id===studioSubjectId);
+  if(subj){ selectSubject(subj.id); }
+  else if(welcomeMode){ setTimeout(()=>{targets=textTargets('Welcome','');},460); }
+  setTimeout(()=>{resize();},460);
 });
 window.addEventListener('resize',()=>{
   resize();
