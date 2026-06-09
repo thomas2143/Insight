@@ -1350,26 +1350,14 @@ document.getElementById('btn-me-generate').addEventListener('click', async ()=>{
   status.textContent='';
 
   try{
-    const response = await fetch('https://api.anthropic.com/v1/messages',{
+    const response = await fetch('https://insight-792edpxk8-thomas2143s-projects.vercel.app/api/insight',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        system:`You are a particle shape generator for a creative tool. Given a description, return ONLY a JSON array of [x,y] coordinate pairs that form the outline/silhouette of that shape. Rules:
-- Coordinates must be normalized: x between -1 and 1, y between -1 and 1
-- Return between 200 and 600 points
-- Points should trace the outline AND fill the shape with internal points for density
-- For complex shapes, use more points on important features
-- Return ONLY the JSON array, no explanation, no markdown, no code block
-- Example: [[-0.5,0],[0,0.8],[0.5,0],[-0.5,0]]`,
-        messages:[{role:'user',content:`Generate particle coordinates for: "${prompt}"`}]
-      })
+      body:JSON.stringify({ prompt })
     });
     const data=await response.json();
-    const text=data.content?.find(b=>b.type==='text')?.text||'';
-    const clean=text.replace(/```json|```/g,'').trim();
-    const pts=JSON.parse(clean);
+    if(data.error) throw new Error(data.error);
+    const pts=data.points;
     if(Array.isArray(pts)&&pts.length>0){
       customShapePoints=pts;
       renderShapePreview(pts);
