@@ -17,36 +17,57 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'llama3-8b-8192',
-        max_tokens: 1000,
+        max_tokens: 2000,
+        temperature: 0.3,
         messages: [
           {
             role: 'system',
-            content: `You are a particle shape generator. Given a description, return ONLY a JSON array of [x,y] coordinate pairs forming the outline and silhouette of that shape.
-Rules:
-- Coordinates normalized: x between -1 and 1, y between -1 and 1
-- Return between 250 and 500 points
-- Trace the outline AND add internal points for density
-- Return ONLY the raw JSON array, no explanation, no markdown, no code block
-- Example: [[-0.5,0],[0,0.8],[0.5,0]]`
+            content: 'You are a particle coordinate generator. You MUST respond with ONLY a raw JSON array. No markdown, no explanation, no code blocks, no backticks. Just the array starting with [ and ending with ]. Example of valid response: [[-0.5,0.2],[0.3,-0.1],[0.8,0.5]]'
           },
           {
             role: 'user',
-            content: `Generate particle coordinates for: "${prompt}"`
+            content: `Generate 300 [x,y] coordinate pairs (x and y between -1 and 1) that form the shape of: ${prompt}. Trace the outline and fill the interior. Return ONLY the JSON array.`
           }
         ]
       })
     });
 
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('Groq API error:', response.status, errText);
+      return res.status(500).json({ error: `Groq API error: ${response.status}` });
+    }
+
     const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || '';
-    const clean = text.replace(/```json|```/g, '').trim();
-    const points = JSON.parse(clean);
+    const rawText = data.choices?.[0]?.message?.content || '';
+
+    if (!rawText) {
+      console.error('Empty response from Groq');
+      return res.status(500).json({ error: 'Empty response from model' });
+    }
+
+    // Aggressive cleaning
+    let clean = rawText
+      .replace(/```json/gi, '')
+      .replace(/```/g, '')
+      .replace(/^\s*Here.*?:/mi, '')
+      .trim();
+
+    // Extract just the array if there's surrounding text
+    const arrayMatch = clean.match(/\[[\s\S]*\]/);
+    if (!arrayMatch) {
+      console.error('No array found in response:', rawText.slice(0, 200));
+      return res.status(500).json({ error: 'No valid array in response', raw: rawText.slice(0, 200) });
+    }
+
+    const points = JSON.parse(arrayMatch[0]);
 
     if (!Array.isArray(points) || points.length === 0) {
-      return res.status(500).json({ error: 'Invalid response from model' });
+      return res.status(500).json({ error: 'Invalid points array' });
     }
 
     return res.status(200).json({ points });
+
   } catch (err) {
     console.error('Shape generation error:', err);
     return res.status(500).json({ error: err.message });
