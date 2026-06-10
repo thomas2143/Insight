@@ -668,6 +668,7 @@ function cubeTargets(cx,cy){
 
 // Text targets
 function textTargets(line1,line2){
+  if(!W||!H) return [];  // guard against zero dimensions
   const off=document.createElement('canvas');
   const scale=2; off.width=W*scale; off.height=H*scale;
   const octx=off.getContext('2d'); octx.scale(scale,scale);
@@ -839,7 +840,10 @@ function showWelcome(){
   document.getElementById('energy-bar-fill').style.height=(welcomeSubj.energyRaw*100)+'%';
   document.getElementById('energy-bar-fill').style.background=acc;
   currentSubj=welcomeSubj;
-  document.fonts.ready.then(()=>setTimeout(()=>{targets=textTargets('Welcome','to Insight');},520));
+  document.fonts.ready.then(()=>setTimeout(()=>{
+    if(!W||!H) resize();
+    targets=textTargets('Welcome','to Insight');
+  },520));
 }
 
 // ══════════════════════════════════════════════════════
@@ -1062,7 +1066,6 @@ document.querySelectorAll('.me-trans-pill').forEach(pill=>{
 
 // ── Apply tag ──
 document.getElementById('swe-preview').addEventListener('click',()=>{
-  // immediately trigger the transformation on the canvas
   const shape = document.getElementById('swe-shape').value;
   if(!shape) return;
   const trans = document.querySelector('.me-trans-pill.active')?.dataset.trans||'smooth';
@@ -1071,9 +1074,9 @@ document.getElementById('swe-preview').addEventListener('click',()=>{
     tag.customPoints = customShapePoints;
     tag.customPrompt = document.getElementById('swe-custom-prompt').value;
   }
-  // get the word text
   const word = selectedWordIdx !== null ? getSD().words[selectedWordIdx] : null;
-  triggerWordTag(tag, word ? word.text : '');
+  // preview only — does NOT save, does NOT affect other words
+  previewWordTag(tag, word ? word.text : '');
 });
 
 document.getElementById('swe-save').addEventListener('click',()=>{
@@ -1085,13 +1088,19 @@ document.getElementById('swe-save').addEventListener('click',()=>{
     tag.customPoints=customShapePoints;
     tag.customPrompt=document.getElementById('swe-custom-prompt').value;
   }
+  // save tag to this word only — no canvas change
   getSD().words[selectedWordIdx].tag=shape?tag:null;
   renderWordDisplay(getSD().words);
-  // re-select the word
+  // re-select without triggering preview
   setTimeout(()=>{
     const el=document.querySelector(`.sw-word[data-idx="${selectedWordIdx}"]`);
     if(el) selectWord(selectedWordIdx,el);
   },50);
+  // show confirmation
+  const btn=document.getElementById('swe-save');
+  const orig=btn.textContent;
+  btn.textContent='Saved!';
+  setTimeout(()=>btn.textContent=orig,1000);
 });
 
 // ── Remove tag ──
@@ -1199,6 +1208,33 @@ function checkWordsAt(pos){
   lastTriggeredWord=wordKey;
   triggerWordTag(word.tag, word.text);
   setTimeout(()=>{ if(lastTriggeredWord===wordKey) lastTriggeredWord=null; },1200);
+}
+
+// Preview only — temporary visual, doesn't save state
+function previewWordTag(tag, wordText){
+  const accent = tag.color || 'var(--accent)';
+  const rgb = hexToRgb(accent);
+  if(tag.transition === 'explosion'){ exploding=true; explodeTimer=0; }
+
+  if(tag.shape === 'custom' && tag.customPoints){
+    const previewSubj = {id:-88, accent, energyRaw:0.6, rgb, chaos:0.08, speed:0.4, shape:'custom'};
+    currentSubj = previewSubj;
+    applySubjectTheme(previewSubj);
+    setTimeout(()=>{ targets=computeTargets(previewSubj, tag.customPoints); }, tag.transition==='explosion'?500:100);
+  } else if(tag.shape === 'text'){
+    const previewSubj = {id:-99, accent, energyRaw:0.5, rgb, chaos:0.05, speed:0.28, shape:'text_display'};
+    currentSubj = previewSubj;
+    applySubjectTheme(previewSubj);
+    document.fonts.ready.then(()=>setTimeout(()=>{ targets=textTargets(wordText,''); }, tag.transition==='explosion'?500:100));
+  } else {
+    const subj = subjects.find(s=>s.shape===tag.shape);
+    if(subj){
+      const previewSubj = {...subj, accent, rgb};
+      currentSubj = previewSubj;
+      targets = computeTargets(previewSubj);
+      applySubjectTheme(previewSubj);
+    }
+  }
 }
 
 function triggerWordTag(tag, wordText){
@@ -1392,7 +1428,10 @@ setTimeout(()=>{
   document.fonts.ready.then(()=>{
     currentSubj=welcomeSubj;welcomeMode=true;
     applySubjectTheme(welcomeSubj);
-    setTimeout(()=>{targets=textTargets('Welcome','to Insight');},400);
+    setTimeout(()=>{
+      if(!W||!H) resize();
+      targets=textTargets('Welcome','to Insight');
+    },400);
   });
 },120);
 </script>
