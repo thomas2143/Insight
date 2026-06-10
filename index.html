@@ -1189,6 +1189,15 @@ function startPlayback(){
   const dur=sd.dur;
   document.getElementById('studio-total').textContent=fmtTime(dur);
 
+  // ensure canvas is active with the current subject
+  const activeSubj=subjects.find(s=>s.id===studioSubjectId)||subjects[0];
+  if(!currentSubj||currentSubj.id<0){
+    currentSubj=activeSubj;
+    targets=computeTargets(activeSubj);
+  }
+  // ensure particles exist
+  if(!particles.length) initParticles();
+
   if(playInterval) clearInterval(playInterval);
   // 100ms intervals = 10 updates/sec
   playInterval=setInterval(()=>{
@@ -1255,23 +1264,42 @@ function previewWordTag(tag, wordText){
 
 function triggerWordTag(tag, wordText){
   const trans=tag.transition||'smooth';
-  const accent=tag.color||'var(--accent)';
+  const accent=tag.color||'#b8a47a';
   const rgb=hexToRgb(accent);
+
+  // ensure explosion triggers
   if(trans==='explosion'){ exploding=true; explodeTimer=0; }
 
-  if(tag.shape==='custom'&&tag.customPoints){
+  const delay = trans==='explosion' ? 500 : 80;
+
+  if(tag.shape==='custom' && tag.customPoints && tag.customPoints.length){
     currentSubj={id:-88,accent,energyRaw:0.6,rgb,chaos:0.08,speed:0.4,shape:'custom'};
-    setTimeout(()=>{ targets=computeTargets(currentSubj,tag.customPoints); },trans==='explosion'?500:100);
+    setTimeout(()=>{
+      targets=computeTargets(currentSubj,tag.customPoints);
+    }, delay);
+
   } else if(tag.shape==='text'){
     currentSubj={id:-99,accent,energyRaw:0.5,rgb,chaos:0.05,speed:0.28,shape:'text_display'};
-    document.fonts.ready.then(()=>setTimeout(()=>{ targets=textTargets(wordText,''); },trans==='explosion'?500:100));
+    document.fonts.ready.then(()=>setTimeout(()=>{
+      if(W&&H) targets=textTargets(wordText,'');
+    }, delay));
+
   } else {
-    const subj=subjects.find(s=>s.shape===tag.shape);
-    if(subj){
-      currentSubj={...subj,accent,rgb};
+    const baseSubj=subjects.find(s=>s.shape===tag.shape);
+    if(!baseSubj) return;
+    // build a fresh subject with the tag's color
+    currentSubj={...baseSubj, accent, rgb};
+    // force new targets immediately
+    setTimeout(()=>{
       targets=computeTargets(currentSubj);
-      applySubjectTheme({...subj,accent});
-    }
+    }, delay);
+    // update UI accent color
+    document.documentElement.style.setProperty('--accent', accent);
+    cur.style.background=accent;
+    ring.style.borderColor=accent;
+    document.getElementById('live-dot').style.background=accent;
+    document.getElementById('energy-bar-fill').style.background=accent;
+    document.getElementById('energy-bar-fill').style.height=(baseSubj.energyRaw*100)+'%';
   }
 }
 
