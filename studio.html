@@ -8,219 +8,401 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Outfit:wght@200;300;400&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-:root { --accent:#b8a47a; --bg:#05050a; --text:#f5f0e8; --border:rgba(255,255,255,0.08); }
-html,body { width:100%; height:100%; background:var(--bg); color:var(--text); font-family:'Outfit',sans-serif; overflow:hidden; }
+:root { --accent:#b8a47a; --bg:#05050a; --border:rgba(255,255,255,0.08); }
+html,body { width:100%; height:100vh; overflow:hidden; background:var(--bg); color:#f0ead8; font-family:'Outfit',sans-serif; }
 
-/* Layout */
-#studio { display:grid; grid-template-rows:44px 160px 1fr 48px; height:100vh; }
+/* ── Layout ── */
+#app {
+  display:grid;
+  grid-template-columns:1fr 320px;
+  grid-template-rows:48px 1fr 52px;
+  height:100vh;
+}
 
-/* Header */
-#studio-header { display:flex; align-items:center; justify-content:space-between; padding:0 20px; border-bottom:0.5px solid var(--border); background:rgba(5,5,10,0.98); }
-#studio-title { font-family:'Cormorant Garamond',serif; font-size:16px; font-weight:300; letter-spacing:0.2em; text-transform:uppercase; color:rgba(232,224,208,0.9); }
-#subject-tabs { display:flex; gap:0; }
-.subj-tab { padding:0 16px; height:44px; display:flex; align-items:center; font-size:8px; font-weight:300; letter-spacing:0.16em; text-transform:uppercase; cursor:pointer; transition:all 0.2s; color:rgba(232,224,208,0.4); border-bottom:2px solid transparent; gap:6px; }
-.subj-tab:hover { color:rgba(232,224,208,0.7); }
-.subj-tab.active { color:var(--tab-accent,var(--accent)); border-bottom-color:var(--tab-accent,var(--accent)); }
-.subj-tab-dot { width:5px; height:5px; border-radius:50%; background:var(--tab-accent,var(--accent)); opacity:0.6; flex-shrink:0; }
-.subj-tab.active .subj-tab-dot { opacity:1; }
-
-/* Mini preview canvas */
-#mini-preview {
+/* ── Header ── */
+#header {
   grid-column:1/3;
-  background:#05050a;
-  border-bottom:0.5px solid var(--border);
-  position:relative;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 24px; border-bottom:0.5px solid var(--border);
+  background:rgba(5,5,10,0.98);
+}
+#header-title { font-family:'Cormorant Garamond',serif; font-size:17px; font-weight:300; letter-spacing:0.22em; text-transform:uppercase; color:rgba(240,234,216,0.9); }
+#header-title span { color:var(--accent); }
+#subject-tabs { display:flex; }
+.s-tab {
+  padding:0 16px; height:48px; display:flex; align-items:center; gap:7px;
+  font-size:8px; font-weight:300; letter-spacing:0.16em; text-transform:uppercase;
+  cursor:pointer; color:rgba(240,234,216,0.3); border-bottom:2px solid transparent;
+  transition:all 0.2s; margin-bottom:-0.5px;
+}
+.s-tab:hover { color:rgba(240,234,216,0.65); }
+.s-tab.active { color:var(--tab-c,var(--accent)); border-bottom-color:var(--tab-c,var(--accent)); }
+.s-tab-dot { width:5px; height:5px; border-radius:50%; background:var(--tab-c,var(--accent)); opacity:0.5; flex-shrink:0; }
+.s-tab.active .s-tab-dot { opacity:1; }
+#step-hint {
+  font-size:9px; font-weight:200; letter-spacing:0.18em; text-transform:uppercase;
+  color:rgba(240,234,216,0.3); padding:4px 12px; border:0.5px solid rgba(255,255,255,0.08);
+  border-radius:2px;
+}
+
+/* ── Left: preview + script ── */
+#left-panel {
+  display:grid;
+  grid-template-rows:40% 1fr;
+  border-right:0.5px solid var(--border);
   overflow:hidden;
 }
+
+/* Mini canvas */
+#preview-wrap {
+  position:relative; overflow:hidden; background:#05050a;
+  border-bottom:0.5px solid var(--border);
+}
 #mini-canvas { display:block; width:100%; height:100%; }
-#mini-label {
-  position:absolute; bottom:10px; left:50%;
-  transform:translateX(-50%);
-  font-size:8px; font-weight:200; letter-spacing:0.28em;
-  text-transform:uppercase; color:rgba(232,224,208,0.25);
-  white-space:nowrap; pointer-events:none;
+#preview-subject {
+  position:absolute; bottom:14px; left:20px;
+  font-family:'Cormorant Garamond',serif; font-size:18px; font-weight:300;
+  letter-spacing:0.14em; text-transform:uppercase;
+  color:rgba(240,234,216,0.45); pointer-events:none; transition:color 0.5s;
 }
-#mini-subject-name {
-  position:absolute; top:10px; left:20px;
-  font-family:'Cormorant Garamond',serif; font-size:14px; font-weight:300;
-  letter-spacing:0.12em; text-transform:uppercase;
-  color:rgba(232,224,208,0.4); pointer-events:none;
-  transition:color 0.5s;
+#preview-word {
+  position:absolute; bottom:14px; right:20px;
+  font-size:9px; font-weight:200; letter-spacing:0.2em; text-transform:uppercase;
+  color:rgba(240,234,216,0.3); pointer-events:none; transition:all 0.4s;
+  font-family:'Outfit',sans-serif;
+}
+#preview-hint {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  font-size:10px; font-weight:200; letter-spacing:0.2em; text-transform:uppercase;
+  color:rgba(240,234,216,0.15); pointer-events:none; text-align:center; line-height:1.8;
 }
 
-/* Body */
-#studio-body { display:grid; grid-template-columns:320px 1fr; overflow:hidden; }
-
-/* Left — script */
-#script-panel { border-right:0.5px solid var(--border); display:flex; flex-direction:column; }
-#script-header { padding:10px 14px; border-bottom:0.5px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
-.label { font-size:8px; font-weight:300; letter-spacing:0.26em; text-transform:uppercase; color:rgba(232,224,208,0.5); }
-#wpm-info { font-size:8px; font-weight:200; letter-spacing:0.14em; color:rgba(232,224,208,0.35); }
-#word-display { flex:1; padding:14px 16px; overflow-y:auto; font-family:'Cormorant Garamond',serif; font-size:16px; font-weight:300; line-height:2.2; color:rgba(232,224,208,0.9); letter-spacing:0.02em; scrollbar-width:none; display:none; }
-#word-display::-webkit-scrollbar { display:none; }
-#raw-wrap { flex:1; display:flex; flex-direction:column; gap:8px; padding:12px 14px; }
-#script-textarea { flex:1; background:rgba(255,255,255,0.03); border:0.5px solid rgba(255,255,255,0.08); color:rgba(232,224,208,0.85); font-family:'Outfit',sans-serif; font-size:11px; font-weight:200; line-height:1.7; padding:8px 10px; resize:none; outline:none; border-radius:2px; }
-#script-textarea::placeholder { color:rgba(232,224,208,0.25); }
-#btn-parse { padding:7px; font-size:8px; font-weight:300; letter-spacing:0.2em; text-transform:uppercase; border:0.5px solid rgba(255,255,255,0.12); border-radius:2px; cursor:pointer; color:rgba(232,224,208,0.6); background:transparent; transition:all 0.25s; }
+/* Script area */
+#script-wrap { display:flex; flex-direction:column; overflow:hidden; }
+#script-toolbar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 16px; border-bottom:0.5px solid var(--border); flex-shrink:0;
+}
+.toolbar-label { font-size:8px; font-weight:200; letter-spacing:0.26em; text-transform:uppercase; color:rgba(240,234,216,0.4); }
+#btn-parse {
+  padding:5px 14px; font-size:8px; font-weight:300; letter-spacing:0.18em;
+  text-transform:uppercase; border:0.5px solid rgba(255,255,255,0.12);
+  border-radius:2px; cursor:pointer; color:rgba(240,234,216,0.65);
+  background:transparent; transition:all 0.25s;
+}
 #btn-parse:hover { color:var(--accent); border-color:var(--accent); }
 
-/* Word tokens */
-.sw { display:inline; cursor:pointer; border-radius:2px; padding:1px 3px; margin:0 1px; transition:background 0.15s; }
-.sw:hover { background:rgba(255,255,255,0.1); }
-.sw.tagged { color:rgba(5,5,10,0.95); font-weight:400; }
-.sw.selected { outline:2px solid rgba(255,255,255,0.6); outline-offset:1px; }
+#script-textarea {
+  flex:1; background:transparent; border:none; outline:none; resize:none;
+  color:rgba(240,234,216,0.75); font-family:'Outfit',sans-serif;
+  font-size:12px; font-weight:200; line-height:1.8; padding:14px 16px;
+  scrollbar-width:none;
+}
+#script-textarea::placeholder { color:rgba(240,234,216,0.18); }
+#script-textarea::-webkit-scrollbar { display:none; }
 
-/* Right — word editor */
-#word-editor-panel { display:flex; flex-direction:column; padding:20px; gap:14px; overflow-y:auto; scrollbar-width:none; }
-#word-editor-panel::-webkit-scrollbar { display:none; }
-#editor-empty { display:flex; align-items:center; justify-content:center; height:100%; }
-#editor-empty p { font-size:11px; font-weight:200; color:rgba(232,224,208,0.25); letter-spacing:0.1em; text-align:center; line-height:1.8; }
-#word-editor { display:none; flex-direction:column; gap:12px; }
-#we-word { font-family:'Cormorant Garamond',serif; font-size:28px; font-weight:300; color:rgba(232,224,208,0.95); letter-spacing:0.06em; }
-#we-time { font-size:9px; font-weight:200; color:rgba(232,224,208,0.35); letter-spacing:0.16em; text-transform:uppercase; }
-.row { display:flex; flex-direction:column; gap:5px; }
-.row-label { font-size:8px; font-weight:200; letter-spacing:0.2em; text-transform:uppercase; color:rgba(232,224,208,0.45); }
-select, input[type=text] { background:rgba(255,255,255,0.04); border:0.5px solid rgba(255,255,255,0.1); color:rgba(232,224,208,0.9); font-family:'Outfit',sans-serif; font-size:11px; padding:7px 9px; border-radius:2px; outline:none; width:100%; }
-.swatches { display:flex; gap:5px; align-items:center; }
-.swatch { width:18px; height:18px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:transform 0.15s,border-color 0.15s; flex-shrink:0; }
-.swatch:hover { transform:scale(1.2); }
-.swatch.active { border-color:rgba(255,255,255,0.7); transform:scale(1.15); }
-#we-color-picker { width:26px; height:26px; border:none; background:none; padding:0; cursor:pointer; border-radius:50%; overflow:hidden; flex-shrink:0; }
-.pills { display:flex; gap:6px; }
-.pill { flex:1; padding:6px 4px; font-size:8px; font-weight:300; letter-spacing:0.14em; text-transform:uppercase; text-align:center; border:0.5px solid rgba(255,255,255,0.1); border-radius:2px; cursor:pointer; transition:all 0.2s; color:rgba(232,224,208,0.5); }
-.pill:hover { color:rgba(232,224,208,0.8); border-color:rgba(232,224,208,0.3); }
+#word-display {
+  flex:1; padding:14px 16px; overflow-y:auto; scrollbar-width:none;
+  font-family:'Cormorant Garamond',serif; font-size:16px; font-weight:300;
+  line-height:2.2; color:rgba(240,234,216,0.85); letter-spacing:0.02em;
+  display:none;
+}
+#word-display::-webkit-scrollbar { display:none; }
+
+.sw {
+  display:inline; cursor:pointer; border-radius:2px;
+  padding:2px 3px; margin:0 1px; transition:all 0.15s;
+}
+.sw:hover { background:rgba(255,255,255,0.09); }
+.sw.tagged { color:rgba(5,5,10,0.95); font-weight:400; border-radius:3px; }
+.sw.active { outline:2px solid rgba(255,255,255,0.55); outline-offset:2px; }
+
+/* ── Right: word editor ── */
+#right-panel {
+  display:flex; flex-direction:column; overflow:hidden;
+}
+
+/* Empty state */
+#editor-empty {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:16px; padding:24px;
+}
+#editor-empty-step {
+  font-size:11px; font-weight:200; letter-spacing:0.14em;
+  color:rgba(240,234,216,0.2); text-align:center; line-height:2;
+}
+.step-num {
+  display:inline-block; width:20px; height:20px; border-radius:50%;
+  border:0.5px solid rgba(240,234,216,0.15); font-size:9px; font-weight:300;
+  text-align:center; line-height:20px; margin-right:6px;
+  color:rgba(240,234,216,0.25);
+}
+
+/* Word editor */
+#word-editor { flex:1; display:none; flex-direction:column; overflow-y:auto; scrollbar-width:none; }
+#word-editor::-webkit-scrollbar { display:none; }
+
+#we-header {
+  padding:16px 20px 12px; border-bottom:0.5px solid var(--border); flex-shrink:0;
+}
+#we-word {
+  font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:300;
+  color:rgba(240,234,216,0.95); letter-spacing:0.06em; margin-bottom:4px;
+}
+#we-time { font-size:8px; font-weight:200; letter-spacing:0.2em; text-transform:uppercase; color:rgba(240,234,216,0.3); }
+
+#we-fields { padding:16px 20px; display:flex; flex-direction:column; gap:14px; }
+
+.field { display:flex; flex-direction:column; gap:6px; }
+.field-label { font-size:8px; font-weight:200; letter-spacing:0.22em; text-transform:uppercase; color:rgba(240,234,216,0.4); }
+
+select {
+  background:rgba(255,255,255,0.04); border:0.5px solid rgba(255,255,255,0.1);
+  color:rgba(240,234,216,0.88); font-family:'Outfit',sans-serif; font-size:11px;
+  padding:8px 10px; border-radius:2px; outline:none; width:100%; cursor:pointer;
+}
+select:focus { border-color:rgba(240,234,216,0.3); }
+
+/* custom shape */
+#custom-section { display:none; flex-direction:column; gap:8px; }
+#we-prompt {
+  background:rgba(255,255,255,0.04); border:0.5px solid rgba(255,255,255,0.1);
+  color:rgba(240,234,216,0.88); font-family:'Outfit',sans-serif; font-size:11px;
+  padding:8px 10px; border-radius:2px; outline:none; width:100%;
+}
+#we-prompt::placeholder { color:rgba(240,234,216,0.22); }
+#we-prompt:focus { border-color:rgba(240,234,216,0.3); }
+#btn-generate {
+  padding:7px 14px; font-size:8px; font-weight:300; letter-spacing:0.18em;
+  text-transform:uppercase; border:0.5px solid rgba(255,255,255,0.15);
+  border-radius:2px; cursor:pointer; color:rgba(240,234,216,0.6);
+  background:transparent; transition:all 0.25s; align-self:flex-start;
+}
+#btn-generate:hover { color:var(--accent); border-color:var(--accent); }
+#gen-status { font-size:9px; color:rgba(240,234,216,0.35); }
+#gen-preview-canvas { width:100%; height:50px; display:none; background:rgba(255,255,255,0.02); border:0.5px solid rgba(255,255,255,0.06); border-radius:2px; }
+
+/* color swatches */
+.swatches { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.swatch {
+  width:20px; height:20px; border-radius:50%; cursor:pointer;
+  border:2px solid transparent; transition:transform 0.15s, border-color 0.15s; flex-shrink:0;
+}
+.swatch:hover { transform:scale(1.18); }
+.swatch.active { border-color:rgba(255,255,255,0.65); transform:scale(1.15); }
+#color-picker {
+  width:28px; height:28px; border:none; background:none;
+  padding:0; cursor:pointer; border-radius:50%; overflow:hidden; flex-shrink:0;
+}
+
+/* transition pills */
+.pills { display:flex; gap:8px; }
+.pill {
+  flex:1; padding:7px; font-size:8px; font-weight:300; letter-spacing:0.16em;
+  text-transform:uppercase; text-align:center; border:0.5px solid rgba(255,255,255,0.1);
+  border-radius:2px; cursor:pointer; transition:all 0.2s;
+  color:rgba(240,234,216,0.45);
+}
+.pill:hover { color:rgba(240,234,216,0.75); border-color:rgba(240,234,216,0.25); }
 .pill.active { color:var(--accent); border-color:var(--accent); background:rgba(255,255,255,0.03); }
-#custom-row { display:none; flex-direction:column; gap:7px; }
-#we-custom-input { width:100%; background:rgba(255,255,255,0.04); border:0.5px solid rgba(255,255,255,0.1); color:rgba(232,224,208,0.9); font-family:'Outfit',sans-serif; font-size:11px; padding:7px 9px; border-radius:2px; outline:none; }
-#we-custom-input::placeholder { color:rgba(232,224,208,0.25); }
-.gen-row { display:flex; gap:8px; align-items:center; }
-#btn-gen { padding:6px 12px; font-size:8px; font-weight:300; letter-spacing:0.18em; text-transform:uppercase; border:0.5px solid rgba(255,255,255,0.15); border-radius:2px; cursor:pointer; color:rgba(232,224,208,0.6); background:transparent; transition:all 0.25s; white-space:nowrap; }
-#btn-gen:hover { color:var(--accent); border-color:var(--accent); }
-#gen-status { font-size:9px; color:rgba(232,224,208,0.4); }
-#preview-canvas-wrap { display:none; }
-#preview-canvas { width:100%; height:60px; display:block; background:rgba(255,255,255,0.02); border:0.5px solid rgba(255,255,255,0.06); border-radius:2px; }
-.actions { display:flex; gap:8px; margin-top:4px; }
-.btn { flex:1; padding:8px; font-size:8px; font-weight:300; letter-spacing:0.18em; text-transform:uppercase; border:0.5px solid rgba(255,255,255,0.12); background:transparent; color:rgba(232,224,208,0.7); border-radius:2px; cursor:pointer; transition:all 0.2s; }
-.btn:hover { color:rgba(232,224,208,0.95); border-color:rgba(232,224,208,0.4); }
-.btn.primary { border-color:var(--accent); color:var(--accent); }
-.btn.primary:hover { background:rgba(184,164,122,0.08); }
-.btn.danger:hover { color:#c84040; border-color:#c84040; }
 
-/* Playbar */
-#playbar { display:flex; align-items:center; gap:14px; padding:0 20px; border-top:0.5px solid var(--border); background:rgba(5,5,10,0.98); }
-#btn-play { display:flex; align-items:center; gap:8px; padding:6px 14px; border:0.5px solid rgba(255,255,255,0.12); border-radius:2px; cursor:pointer; font-size:9px; font-weight:300; letter-spacing:0.2em; text-transform:uppercase; color:rgba(232,224,208,0.6); transition:all 0.25s; }
+/* actions */
+#we-actions {
+  padding:14px 20px 18px; display:flex; flex-direction:column; gap:8px; flex-shrink:0;
+  border-top:0.5px solid var(--border); margin-top:auto;
+}
+.action-row { display:flex; gap:8px; }
+#btn-preview-apply {
+  flex:2; padding:10px; font-size:9px; font-weight:300; letter-spacing:0.2em;
+  text-transform:uppercase; border:0.5px solid var(--accent); border-radius:2px;
+  cursor:pointer; color:var(--accent); background:transparent; transition:all 0.25s;
+}
+#btn-preview-apply:hover { background:rgba(184,164,122,0.1); }
+#btn-remove {
+  flex:1; padding:10px; font-size:9px; font-weight:300; letter-spacing:0.2em;
+  text-transform:uppercase; border:0.5px solid rgba(255,255,255,0.1); border-radius:2px;
+  cursor:pointer; color:rgba(240,234,216,0.45); background:transparent; transition:all 0.25s;
+}
+#btn-remove:hover { color:#c84040; border-color:#c84040; }
+
+/* ── Playbar ── */
+#playbar {
+  grid-column:1/3; display:flex; align-items:center; gap:16px;
+  padding:0 24px; border-top:0.5px solid var(--border);
+  background:rgba(5,5,10,0.98);
+}
+#btn-play {
+  display:flex; align-items:center; gap:8px; padding:7px 16px;
+  border:0.5px solid rgba(255,255,255,0.15); border-radius:2px;
+  cursor:pointer; font-size:9px; font-weight:300; letter-spacing:0.2em;
+  text-transform:uppercase; color:rgba(240,234,216,0.65); transition:all 0.25s;
+}
 #btn-play:hover, #btn-play.playing { border-color:var(--accent); color:var(--accent); }
-#elapsed, #total { font-size:10px; font-weight:200; letter-spacing:0.1em; color:rgba(232,224,208,0.5); font-variant-numeric:tabular-nums; }
-#playbar-right { margin-left:auto; display:flex; align-items:center; gap:10px; }
-#saves { display:flex; gap:6px; align-items:center; }
-.save-slot { padding:5px 10px; border:0.5px solid rgba(255,255,255,0.08); border-radius:2px; cursor:pointer; font-size:8px; font-weight:300; letter-spacing:0.16em; text-transform:uppercase; color:rgba(232,224,208,0.5); transition:all 0.2s; position:relative; }
-.save-slot:hover { color:rgba(232,224,208,0.8); border-color:rgba(232,224,208,0.3); }
-.save-slot.has-data::before { content:''; position:absolute; top:3px; right:3px; width:4px; height:4px; border-radius:50%; background:var(--accent); }
-#btn-save { padding:5px 12px; border:0.5px solid rgba(255,255,255,0.1); border-radius:2px; cursor:pointer; font-size:8px; font-weight:300; letter-spacing:0.16em; text-transform:uppercase; color:rgba(232,224,208,0.5); background:transparent; transition:all 0.2s; }
+#elapsed, #total { font-size:10px; font-weight:200; color:rgba(240,234,216,0.45); font-variant-numeric:tabular-nums; }
+#playbar-sep { color:rgba(240,234,216,0.15); font-size:10px; }
+
+/* progress bar */
+#progress-track {
+  flex:1; height:2px; background:rgba(255,255,255,0.06);
+  border-radius:1px; position:relative; cursor:pointer;
+}
+#progress-fill { height:100%; background:var(--accent); border-radius:1px; width:0%; transition:width 0.1s linear; }
+
+#playbar-right { margin-left:auto; display:flex; align-items:center; gap:8px; }
+#btn-save {
+  padding:5px 12px; border:0.5px solid rgba(255,255,255,0.1); border-radius:2px;
+  cursor:pointer; font-size:8px; font-weight:300; letter-spacing:0.16em;
+  text-transform:uppercase; color:rgba(240,234,216,0.5); background:transparent; transition:all 0.2s;
+}
 #btn-save:hover { color:var(--accent); border-color:var(--accent); }
-#toast { position:fixed; bottom:60px; left:50%; transform:translateX(-50%) translateY(10px); background:rgba(10,10,18,0.96); border:0.5px solid rgba(255,255,255,0.12); border-radius:3px; padding:8px 18px; font-size:10px; font-weight:200; letter-spacing:0.18em; text-transform:uppercase; color:rgba(232,224,208,0.8); opacity:0; transition:opacity 0.3s,transform 0.3s; pointer-events:none; z-index:9000; }
+.slot {
+  padding:5px 10px; border:0.5px solid rgba(255,255,255,0.08); border-radius:2px;
+  cursor:pointer; font-size:8px; font-weight:300; letter-spacing:0.16em;
+  text-transform:uppercase; color:rgba(240,234,216,0.4); transition:all 0.2s; position:relative;
+}
+.slot:hover { color:rgba(240,234,216,0.75); border-color:rgba(240,234,216,0.25); }
+.slot.filled::after {
+  content:''; position:absolute; top:3px; right:3px;
+  width:4px; height:4px; border-radius:50%; background:var(--accent);
+}
+
+/* toast */
+#toast {
+  position:fixed; bottom:70px; left:50%; transform:translateX(-50%) translateY(8px);
+  background:rgba(10,10,18,0.96); border:0.5px solid rgba(255,255,255,0.12);
+  border-radius:3px; padding:8px 20px; font-size:10px; font-weight:200;
+  letter-spacing:0.18em; text-transform:uppercase; color:rgba(240,234,216,0.8);
+  opacity:0; transition:opacity 0.3s, transform 0.3s; pointer-events:none; z-index:999;
+}
 #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
-<div id="studio">
+<div id="app">
 
-  <div id="studio-header">
-    <div id="studio-title">I<span style="color:var(--accent)">N</span>SIGHT Studio</div>
-    <div id="subject-tabs"><!-- injected by JS --></div>
+  <!-- Header -->
+  <div id="header">
+    <div id="header-title">I<span>N</span>SIGHT <span style="font-size:11px;letter-spacing:0.3em;color:rgba(240,234,216,0.4);font-family:'Outfit',sans-serif;font-weight:200;">STUDIO</span></div>
+    <div id="subject-tabs"></div>
+    <div id="step-hint">① Paste script &nbsp;② Click word &nbsp;③ Play</div>
   </div>
 
-  <div id="mini-preview">
-    <canvas id="mini-canvas"></canvas>
-    <div id="mini-subject-name">Avatar</div>
-    <div id="mini-label">Live preview</div>
-  </div>
+  <!-- Left panel -->
+  <div id="left-panel">
 
-  <div id="studio-body">
+    <!-- Mini canvas preview -->
+    <div id="preview-wrap">
+      <canvas id="mini-canvas"></canvas>
+      <div id="preview-subject"></div>
+      <div id="preview-word"></div>
+      <div id="preview-hint">Select a subject above<br>to see particles</div>
+    </div>
 
-    <div id="script-panel">
-      <div id="script-header">
-        <div class="label">Script</div>
-        <div id="wpm-info">130 wpm</div>
+    <!-- Script -->
+    <div id="script-wrap">
+      <div id="script-toolbar">
+        <div class="toolbar-label">Script</div>
+        <button id="btn-parse">Parse words →</button>
       </div>
+      <textarea id="script-textarea" placeholder="Paste your script here…&#10;&#10;Then click Parse to turn each word into a clickable token."></textarea>
       <div id="word-display"></div>
-      <div id="raw-wrap">
-        <textarea id="script-textarea" placeholder="Paste your script here..."></textarea>
-        <button id="btn-parse">Parse words</button>
+    </div>
+
+  </div>
+
+  <!-- Right panel — word editor -->
+  <div id="right-panel">
+
+    <div id="editor-empty">
+      <div id="editor-empty-step">
+        <span class="step-num">1</span>Paste your script &amp; click Parse<br>
+        <span class="step-num">2</span>Click any word to assign a shape<br>
+        <span class="step-num">3</span>Click Preview &amp; Apply, then Play
       </div>
     </div>
 
-    <div id="word-editor-panel">
-      <div id="editor-empty"><p>Click any word<br>to assign a transformation</p></div>
-      <div id="word-editor">
+    <div id="word-editor">
+
+      <div id="we-header">
         <div id="we-word"></div>
         <div id="we-time"></div>
-        <div class="row">
-          <div class="row-label">Shape</div>
+      </div>
+
+      <div id="we-fields">
+
+        <div class="field">
+          <div class="field-label">Shape</div>
           <select id="we-shape">
-            <option value="">-- None --</option>
-            <option value="human">Avatar -- Human</option>
-            <option value="vortex">Hell -- Vortex</option>
-            <option value="expand">Hope -- Expand</option>
-            <option value="cube">Cube Mind</option>
-            <option value="text">Word in particles</option>
-            <option value="custom">AI Custom shape</option>
+            <option value="">— No transformation —</option>
+            <option value="human">Avatar — Human silhouette</option>
+            <option value="vortex">Hell &amp; Darkness — Vortex</option>
+            <option value="expand">Hope — Expanding rings</option>
+            <option value="cube">Cube Mind — Rotating cube</option>
+            <option value="text">Word itself in particles</option>
+            <option value="custom">AI — Describe a custom shape</option>
           </select>
         </div>
-        <div id="custom-row">
-          <div class="row-label">Describe the shape</div>
-          <input type="text" id="we-custom-input" placeholder="a flame, a cat, a tree...">
-          <div class="gen-row">
-            <button id="btn-gen">Generate</button>
+
+        <div id="custom-section">
+          <div class="field-label">Describe the shape</div>
+          <input type="text" id="we-prompt" placeholder="a flame, a cat, a broken heart…">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button id="btn-generate">Generate shape</button>
             <span id="gen-status"></span>
           </div>
-          <div id="preview-canvas-wrap"><canvas id="preview-canvas" height="60"></canvas></div>
+          <canvas id="gen-preview-canvas" height="50"></canvas>
         </div>
-        <div class="row">
-          <div class="row-label">Color</div>
+
+        <div class="field">
+          <div class="field-label">Particle color</div>
           <div class="swatches">
-            <div class="swatch" data-color="#b8a47a" style="background:#b8a47a"></div>
-            <div class="swatch" data-color="#9b3f3f" style="background:#9b3f3f"></div>
-            <div class="swatch" data-color="#6b9ea8" style="background:#6b9ea8"></div>
-            <div class="swatch" data-color="#00c8ff" style="background:#00c8ff"></div>
-            <div class="swatch" data-color="#9b7ec8" style="background:#9b7ec8"></div>
-            <div class="swatch" data-color="#c87e9b" style="background:#c87e9b"></div>
-            <div class="swatch" data-color="#e8e0d0" style="background:#e8e0d0"></div>
-            <input type="color" id="we-color-picker" value="#b8a47a">
+            <div class="swatch" data-c="#b8a47a" style="background:#b8a47a" title="Gold"></div>
+            <div class="swatch" data-c="#9b3f3f" style="background:#9b3f3f" title="Red"></div>
+            <div class="swatch" data-c="#6b9ea8" style="background:#6b9ea8" title="Teal"></div>
+            <div class="swatch" data-c="#00c8ff" style="background:#00c8ff" title="Cyan"></div>
+            <div class="swatch" data-c="#9b7ec8" style="background:#9b7ec8" title="Purple"></div>
+            <div class="swatch" data-c="#c87e9b" style="background:#c87e9b" title="Rose"></div>
+            <div class="swatch" data-c="#e8e0d0" style="background:#e8e0d0" title="White"></div>
+            <input type="color" id="color-picker" value="#b8a47a" title="Custom color">
           </div>
         </div>
-        <div class="row">
-          <div class="row-label">Transition</div>
+
+        <div class="field">
+          <div class="field-label">How particles transition</div>
           <div class="pills">
-            <div class="pill active" data-trans="smooth">Smooth</div>
-            <div class="pill" data-trans="explosion">Explosion</div>
+            <div class="pill active" data-t="smooth">Smooth drift</div>
+            <div class="pill" data-t="explosion">Explosion</div>
           </div>
         </div>
-        <div class="actions">
-          <button class="btn primary" id="btn-preview">Preview</button>
-          <button class="btn" id="btn-apply">Apply</button>
-          <button class="btn danger" id="btn-remove">Remove</button>
+
+      </div>
+
+      <div id="we-actions">
+        <div class="action-row">
+          <button id="btn-preview-apply">Preview &amp; Apply</button>
+          <button id="btn-remove">Remove</button>
         </div>
       </div>
+
     </div>
 
   </div>
 
+  <!-- Playbar -->
   <div id="playbar">
-    <div id="btn-play">
+    <button id="btn-play">
       <svg width="8" height="10" viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12" fill="currentColor"/></svg>
       Play
-    </div>
+    </button>
     <div id="elapsed">0:00</div>
-    <div style="font-size:9px;color:rgba(232,224,208,0.2);">/</div>
+    <div id="playbar-sep">/</div>
     <div id="total">0:00</div>
+    <div id="progress-track"><div id="progress-fill"></div></div>
     <div id="playbar-right">
-      <div id="saves">
-        <button id="btn-save">Save</button>
-        <div class="save-slot" data-slot="1">S1</div>
-        <div class="save-slot" data-slot="2">S2</div>
-        <div class="save-slot" data-slot="3">S3</div>
-      </div>
+      <button id="btn-save">Save</button>
+      <div class="slot" data-slot="1">S1</div>
+      <div class="slot" data-slot="2">S2</div>
+      <div class="slot" data-slot="3">S3</div>
     </div>
   </div>
 
@@ -228,526 +410,412 @@ select, input[type=text] { background:rgba(255,255,255,0.04); border:0.5px solid
 <div id="toast"></div>
 
 <script>
+'use strict';
 const WPM = 130;
 const VERCEL = 'https://insight-five-phi.vercel.app/api/insight';
 const bc = new BroadcastChannel('insight_studio');
 
 // ── Subjects ──
-const subjects = [
-  {id:0,title:'Avatar',accent:'#b8a47a',shape:'human'},
-  {id:1,title:'Hell & Darkness',accent:'#9b3f3f',shape:'vortex'},
-  {id:2,title:'Hope',accent:'#6b9ea8',shape:'expand'},
-  {id:3,title:'Cube Mind',accent:'#00c8ff',shape:'cube'}
+const SUBJECTS = [
+  {id:0, title:'Avatar',        accent:'#b8a47a', rgb:[184,164,122], shape:'human',  chaos:0.26, speed:0.5},
+  {id:1, title:'Hell & Dark',   accent:'#9b3f3f', rgb:[155,63,63],   shape:'vortex', chaos:0.94, speed:2.1},
+  {id:2, title:'Hope',          accent:'#6b9ea8', rgb:[107,158,168], shape:'expand', chaos:0.09, speed:0.3},
+  {id:3, title:'Cube Mind',     accent:'#00c8ff', rgb:[0,200,255],   shape:'cube',   chaos:0.18, speed:0.75}
 ];
 
-// ── Per-subject data ──
+// ── State ──
 const SD = {};
-subjects.forEach(s=>{ SD[s.id]={script:'',words:[],dur:0}; });
-let currentSubjId = 0;
-function sd(){ return SD[currentSubjId]; }
-function fmtTime(s){const m=Math.floor(s/60),sec=Math.floor(s%60);return m+':'+sec.toString().padStart(2,'0');}
-function hexToRgb(hex){if(!hex||!hex.startsWith('#'))return[184,164,122];return[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];}
+SUBJECTS.forEach(s=>{ SD[s.id]={script:'',words:[],dur:0}; });
+let subjId = 0;
+let selIdx = null, selEl = null;
+let editColor = '#b8a47a';
+let customPts = null;
+let isPlaying = false, playTimer = null, pos = 0;
+const done = new Set();
 
-// ── Build subject tabs ──
+function sd(){ return SD[subjId]; }
+function fmt(s){ const m=Math.floor(s/60),sec=Math.floor(s%60); return m+':'+sec.toString().padStart(2,'0'); }
+function rgb(hex){ if(!hex||!hex.startsWith('#')) return [184,164,122]; return [parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)]; }
+
+// ── Subject tabs ──
 function buildTabs(){
-  const container = document.getElementById('subject-tabs');
-  subjects.forEach(s=>{
-    const tab = document.createElement('div');
-    tab.className = 'subj-tab';
-    tab.dataset.id = s.id;
-    tab.style.setProperty('--tab-accent', s.accent);
-    tab.innerHTML = `<span class="subj-tab-dot"></span>${s.title}`;
-    tab.addEventListener('click', ()=>switchSubject(s.id));
-    container.appendChild(tab);
+  const bar = document.getElementById('subject-tabs');
+  SUBJECTS.forEach(s=>{
+    const t = document.createElement('div');
+    t.className='s-tab'; t.dataset.id=s.id;
+    t.style.setProperty('--tab-c', s.accent);
+    t.innerHTML=`<span class="s-tab-dot"></span>${s.title}`;
+    t.onclick = ()=>switchSubj(s.id);
+    bar.appendChild(t);
   });
-  switchSubject(0);
 }
 
-function switchSubject(id){
-  saveState();
-  currentSubjId = id;
-  document.querySelectorAll('.subj-tab').forEach(t=>t.classList.toggle('active',parseInt(t.dataset.id)===id));
-  const subj = subjects.find(s=>s.id===id);
-  if(subj){ document.documentElement.style.setProperty('--accent',subj.accent); }
-  loadState(id);
-  bc.postMessage({type:'select_subject', subjectId:id});
-  updateMiniPreview();
-}
-
-function saveState(){
-  const s = sd();
-  s.script = document.getElementById('script-textarea').value;
-}
-
-function loadState(id){
-  const s = SD[id];
-  document.getElementById('script-textarea').value = s.script||'';
-  selectedIdx = null;
-  document.getElementById('editor-empty').style.display='flex';
-  document.getElementById('word-editor').style.display='none';
-  if(s.words&&s.words.length){
-    renderWords(s.words);
-  } else {
-    document.getElementById('word-display').style.display='none';
-    document.getElementById('raw-wrap').style.display='flex';
-  }
-  document.getElementById('total').textContent = fmtTime(s.dur||0);
+function switchSubj(id){
+  if(sd()) sd().script = document.getElementById('script-textarea').value;
+  subjId = id;
+  document.querySelectorAll('.s-tab').forEach(t=>t.classList.toggle('active', +t.dataset.id===id));
+  const s = SUBJECTS.find(x=>x.id===id);
+  document.documentElement.style.setProperty('--accent', s.accent);
+  // load state
+  const state = sd();
+  document.getElementById('script-textarea').value = state.script||'';
+  document.getElementById('total').textContent = fmt(state.dur||0);
   document.getElementById('elapsed').textContent = '0:00';
+  document.getElementById('progress-fill').style.width = '0%';
+  selIdx=null; selEl=null;
+  showEmpty();
+  if(state.words&&state.words.length) renderWords(state.words);
+  else { document.getElementById('word-display').style.display='none'; document.getElementById('script-textarea').style.display='block'; }
+  // update mini canvas
+  mSet(s.shape, s.accent, s.rgb, s.chaos, s.speed, null);
+  document.getElementById('preview-subject').textContent = s.title;
+  document.getElementById('preview-subject').style.color = s.accent;
+  document.getElementById('preview-hint').style.display = 'none';
+  bc.postMessage({type:'select_subject', subjectId:id});
 }
 
 // ── Parse ──
-document.getElementById('btn-parse').addEventListener('click',()=>{
+document.getElementById('btn-parse').onclick = ()=>{
   const text = document.getElementById('script-textarea').value.trim();
   if(!text) return;
-  const tokens = text.split(/(\s+)/);
-  const words = [];
-  let idx = 0;
-  tokens.forEach(tok=>{
-    if(!tok.trim()) return;
-    words.push({text:tok.trim(), idx, tag:null});
-    idx++;
-  });
+  const words=[], tokens=text.split(/(\s+)/);
+  let i=0;
+  tokens.forEach(tok=>{ if(tok.trim()){ words.push({text:tok.trim(),idx:i,tag:null}); i++; }});
   const dur = Math.ceil((words.length/WPM)*60);
-  sd().words = words;
-  sd().script = text;
-  sd().dur = dur;
-  document.getElementById('total').textContent = fmtTime(dur);
+  Object.assign(sd(), {words, script:text, dur});
+  document.getElementById('total').textContent = fmt(dur);
   renderWords(words);
-});
+};
 
 // ── Render words ──
 function renderWords(words){
-  const display = document.getElementById('word-display');
-  const rawWrap = document.getElementById('raw-wrap');
-  display.innerHTML = '';
-  display.style.display = 'block';
-  rawWrap.style.display = 'none';
-
-  const script = sd().script||'';
-  const tokens = script.split(/(\s+)/);
-  let widx = 0;
+  const ta=document.getElementById('script-textarea'), wd=document.getElementById('word-display');
+  ta.style.display='none'; wd.style.display='block'; wd.innerHTML='';
+  const tokens = (sd().script||'').split(/(\s+)/);
+  let wi=0;
   tokens.forEach(tok=>{
-    if(/^\s+$/.test(tok)){
-      display.appendChild(tok.includes('\n') ? document.createElement('br') : document.createTextNode(' '));
-      return;
-    }
+    if(/^\s+$/.test(tok)){ wd.appendChild(tok.includes('\n')?document.createElement('br'):document.createTextNode(' ')); return; }
     if(!tok.trim()) return;
-    const word = words[widx];
-    if(!word){ widx++; return; }
-    const span = document.createElement('span');
-    span.className = 'sw';
-    span.dataset.idx = widx;
-    span.textContent = tok;
-    if(word.tag){
-      span.classList.add('tagged');
-      span.style.background = word.tag.color||'var(--accent)';
-    }
-    span.addEventListener('click',()=>selectWord(widx, span));
-    display.appendChild(span);
-    widx++;
+    const w=words[wi]; if(!w){wi++;return;}
+    const sp=document.createElement('span');
+    sp.className='sw'; sp.dataset.i=wi; sp.textContent=tok;
+    if(w.tag){ sp.classList.add('tagged'); sp.style.background=w.tag.color||'var(--accent)'; }
+    sp.onclick=()=>selectWord(wi,sp);
+    wd.appendChild(sp); wi++;
   });
 }
 
 // ── Select word ──
-let selectedIdx = null;
-let selectedEl = null;
-let editingColor = '#b8a47a';
-let customPoints = null;
-
-function selectWord(idx, el){
-  if(selectedEl) selectedEl.classList.remove('selected');
-  selectedEl = el;
-  selectedIdx = idx;
-  el.classList.add('selected');
-
-  const word = sd().words[idx];
-  const wc = sd().words.length;
-  const dur = sd().dur||60;
-  const timeAt = (idx/wc)*dur;
-
+function selectWord(idx,el){
+  if(selEl) selEl.classList.remove('active');
+  selEl=el; selIdx=idx; el.classList.add('active');
+  const w=sd().words[idx];
+  const wc=sd().words.length, dur=sd().dur||60;
   document.getElementById('editor-empty').style.display='none';
   document.getElementById('word-editor').style.display='flex';
-  document.getElementById('we-word').textContent = '"'+word.text+'"';
-  document.getElementById('we-time').textContent = '~'+fmtTime(timeAt)+' into presentation';
-
-  const tag = word.tag||{};
-  document.getElementById('we-shape').value = tag.shape||'';
-  editingColor = tag.color||subjects.find(s=>s.id===currentSubjId)?.accent||'#b8a47a';
-  document.getElementById('we-color-picker').value = editingColor;
-  document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('active',s.dataset.color===editingColor));
-  document.querySelectorAll('.pill').forEach(p=>p.classList.toggle('active',p.dataset.trans===(tag.transition||'smooth')));
-  document.getElementById('custom-row').style.display = tag.shape==='custom'?'flex':'none';
-  document.getElementById('we-custom-input').value = tag.customPrompt||'';
-  document.getElementById('preview-canvas-wrap').style.display = 'none';
-  customPoints = tag.customPoints||null;
-  if(customPoints) renderPreview(customPoints);
+  document.getElementById('we-word').textContent='"'+w.text+'"';
+  document.getElementById('we-time').textContent='~'+fmt((idx/wc)*dur)+' into presentation';
+  const tag=w.tag||{};
+  document.getElementById('we-shape').value=tag.shape||'';
+  editColor=tag.color||SUBJECTS.find(s=>s.id===subjId).accent;
+  document.getElementById('color-picker').value=editColor;
+  document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('active',s.dataset.c===editColor));
+  document.querySelectorAll('.pill').forEach(p=>p.classList.toggle('active',p.dataset.t===(tag.transition||'smooth')));
+  document.getElementById('custom-section').style.display=tag.shape==='custom'?'flex':'none';
+  document.getElementById('we-prompt').value=tag.customPrompt||'';
+  document.getElementById('gen-preview-canvas').style.display='none';
+  customPts=tag.customPoints||null;
 }
 
-// ── Shape change ──
-document.getElementById('we-shape').addEventListener('change',function(){
-  document.getElementById('custom-row').style.display = this.value==='custom'?'flex':'none';
-  const colors = {human:'#b8a47a',vortex:'#9b3f3f',expand:'#6b9ea8',cube:'#00c8ff',text:'#c8a0e0',custom:'#9b7ec8'};
-  if(colors[this.value]){
-    editingColor = colors[this.value];
-    document.getElementById('we-color-picker').value = editingColor;
-    document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('active',s.dataset.color===editingColor));
-  }
-});
-
-// ── Swatches ──
-document.querySelectorAll('.swatch').forEach(s=>{
-  s.addEventListener('click',()=>{
-    editingColor = s.dataset.color;
-    document.getElementById('we-color-picker').value = editingColor;
-    document.querySelectorAll('.swatch').forEach(sw=>sw.classList.remove('active'));
-    s.classList.add('active');
-  });
-});
-document.getElementById('we-color-picker').addEventListener('input',function(){
-  editingColor = this.value;
-  document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
-});
-
-// ── Pills ──
-document.querySelectorAll('.pill').forEach(p=>{
-  p.addEventListener('click',()=>{
-    document.querySelectorAll('.pill').forEach(pp=>pp.classList.remove('active'));
-    p.classList.add('active');
-  });
-});
-
-// ── Preview ──
-document.getElementById('btn-preview').addEventListener('click',()=>{
-  const shape = document.getElementById('we-shape').value;
-  if(!shape) return;
-  const trans = document.querySelector('.pill.active')?.dataset.trans||'smooth';
-  const word = selectedIdx!==null ? sd().words[selectedIdx] : null;
-  bc.postMessage({
-    type:'preview',
-    shape, color:editingColor, transition:trans,
-    word: word?.text||'',
-    customPoints: shape==='custom'&&customPoints?customPoints:null
-  });
-  // also show in mini preview
-  mSetSubject(currentSubjId, editingColor, shape, shape==='custom'&&customPoints?customPoints:null);
-});
-
-// ── Apply ──
-document.getElementById('btn-apply').addEventListener('click',()=>{
-  if(selectedIdx===null) return;
-  const shape = document.getElementById('we-shape').value;
-  const trans = document.querySelector('.pill.active')?.dataset.trans||'smooth';
-  const tag = shape ? {shape, color:editingColor, transition:trans} : null;
-  if(shape==='custom'&&customPoints) { tag.customPoints=customPoints; tag.customPrompt=document.getElementById('we-custom-input').value; }
-  sd().words[selectedIdx].tag = tag;
-  renderWords(sd().words);
-  setTimeout(()=>{
-    const el = document.querySelector(`.sw[data-idx="${selectedIdx}"]`);
-    if(el) selectWord(selectedIdx, el);
-  },50);
-  const btn = document.getElementById('btn-apply');
-  btn.textContent = 'Saved!';
-  setTimeout(()=>btn.textContent='Apply',1000);
-});
-
-// ── Remove ──
-document.getElementById('btn-remove').addEventListener('click',()=>{
-  if(selectedIdx===null) return;
-  sd().words[selectedIdx].tag = null;
-  renderWords(sd().words);
+function showEmpty(){
   document.getElementById('editor-empty').style.display='flex';
   document.getElementById('word-editor').style.display='none';
-  selectedIdx=null; selectedEl=null;
+  if(selEl) selEl.classList.remove('active');
+  selEl=null; selIdx=null;
+}
+
+// ── Shape select ──
+document.getElementById('we-shape').onchange = function(){
+  document.getElementById('custom-section').style.display=this.value==='custom'?'flex':'none';
+  const autoC={human:'#b8a47a',vortex:'#9b3f3f',expand:'#6b9ea8',cube:'#00c8ff',text:'#c8a0e0',custom:'#9b7ec8'}[this.value];
+  if(autoC){ editColor=autoC; document.getElementById('color-picker').value=autoC; document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('active',s.dataset.c===autoC)); }
+};
+
+// ── Swatches ──
+document.querySelectorAll('.swatch').forEach(s=>s.onclick=()=>{
+  editColor=s.dataset.c; document.getElementById('color-picker').value=editColor;
+  document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active')); s.classList.add('active');
 });
+document.getElementById('color-picker').oninput=function(){
+  editColor=this.value; document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+};
+
+// ── Pills ──
+document.querySelectorAll('.pill').forEach(p=>p.onclick=()=>{
+  document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active')); p.classList.add('active');
+});
+
+// ── Preview & Apply ──
+document.getElementById('btn-preview-apply').onclick=()=>{
+  if(selIdx===null) return;
+  const shape=document.getElementById('we-shape').value;
+  const trans=document.querySelector('.pill.active')?.dataset.t||'smooth';
+  const tag=shape?{shape,color:editColor,transition:trans}:null;
+  if(shape==='custom'&&customPts){ tag.customPoints=customPts; tag.customPrompt=document.getElementById('we-prompt').value; }
+
+  // save
+  sd().words[selIdx].tag=tag;
+  renderWords(sd().words);
+  setTimeout(()=>{ const el=document.querySelector(`.sw[data-i="${selIdx}"]`); if(el) selectWord(selIdx,el); },50);
+
+  // preview on mini canvas
+  if(shape){
+    const s=SUBJECTS.find(x=>x.shape===shape)||SUBJECTS[0];
+    mSet(shape, editColor, rgb(editColor), s.chaos, s.speed, shape==='custom'?customPts:null);
+    document.getElementById('preview-word').textContent='"'+(sd().words[selIdx]?.text||'')+'"';
+    document.getElementById('preview-word').style.color=editColor;
+  }
+
+  // send to main canvas
+  bc.postMessage({type:'preview',shape,color:editColor,transition:trans,word:sd().words[selIdx]?.text||'',customPoints:shape==='custom'&&customPts?customPts:null});
+
+  // feedback
+  const btn=document.getElementById('btn-preview-apply');
+  btn.textContent='Applied!'; setTimeout(()=>btn.textContent='Preview & Apply',1000);
+};
+
+// ── Remove ──
+document.getElementById('btn-remove').onclick=()=>{
+  if(selIdx===null) return;
+  sd().words[selIdx].tag=null;
+  renderWords(sd().words); showEmpty();
+};
 
 // ── AI Generate ──
-document.getElementById('btn-gen').addEventListener('click',async()=>{
-  const prompt = document.getElementById('we-custom-input').value.trim();
-  if(!prompt) return;
-  const btn = document.getElementById('btn-gen');
-  const status = document.getElementById('gen-status');
-  btn.textContent='...'; btn.disabled=true; status.textContent='Generating...';
+document.getElementById('btn-generate').onclick=async()=>{
+  const prompt=document.getElementById('we-prompt').value.trim(); if(!prompt) return;
+  const btn=document.getElementById('btn-generate'), status=document.getElementById('gen-status');
+  btn.textContent='Generating...'; btn.disabled=true; status.textContent='';
   try{
-    const res = await fetch(VERCEL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
-    const data = await res.json();
-    if(data.error) throw new Error(data.error);
-    customPoints = data.points;
-    renderPreview(customPoints);
-    status.textContent = data.points.length+' points';
+    const res=await fetch(VERCEL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
+    const data=await res.json(); if(data.error) throw new Error(data.error);
+    customPts=data.points; drawGenPreview(customPts); status.textContent=data.points.length+' pts';
   } catch(e){ status.textContent='Error: '+e.message; }
   btn.textContent='Regenerate'; btn.disabled=false;
-});
+};
 
-function renderPreview(pts){
-  if(!pts||!pts.length) return;
-  const cv = document.getElementById('preview-canvas');
-  const cx = cv.getContext('2d');
-  cv.width = cv.offsetWidth||260; cv.height = 60;
+function drawGenPreview(pts){
+  const cv=document.getElementById('gen-preview-canvas');
+  cv.style.display='block'; const cx=cv.getContext('2d');
+  cv.width=cv.offsetWidth||260; cv.height=50;
   cx.clearRect(0,0,cv.width,cv.height);
-  const s = Math.min(cv.width,cv.height)*0.4;
-  const [r,g,b] = hexToRgb(editingColor);
-  const step = Math.max(1,Math.floor(pts.length/300));
+  const s=Math.min(cv.width,cv.height)*0.42;
+  const[r,g,b]=rgb(editColor);
+  const step=Math.max(1,Math.floor(pts.length/300));
   for(let i=0;i<pts.length;i+=step){
     const[x,y]=pts[i];
-    cx.beginPath();cx.arc(x*s+cv.width/2,y*s+cv.height/2,0.9,0,Math.PI*2);
-    cx.fillStyle=`rgba(${r},${g},${b},0.8)`;cx.fill();
+    cx.beginPath(); cx.arc(x*s+cv.width/2,y*s+cv.height/2,0.85,0,Math.PI*2);
+    cx.fillStyle=`rgba(${r},${g},${b},0.8)`; cx.fill();
   }
-  document.getElementById('preview-canvas-wrap').style.display='block';
 }
 
 // ── Playback ──
-let isPlaying=false, playInterval=null, currentPos=0;
-const triggeredWords = new Set();
-
-document.getElementById('btn-play').addEventListener('click',()=>{
-  isPlaying = !isPlaying;
-  const btn = document.getElementById('btn-play');
+document.getElementById('btn-play').onclick=()=>{
+  isPlaying=!isPlaying;
+  const btn=document.getElementById('btn-play');
   btn.classList.toggle('playing',isPlaying);
-  btn.innerHTML = isPlaying
-    ? '<svg width="8" height="10" viewBox="0 0 10 10"><rect x="0" y="0" width="3" height="10" fill="currentColor"/><rect x="5" y="0" width="3" height="10" fill="currentColor"/></svg> Pause'
-    : '<svg width="8" height="10" viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12" fill="currentColor"/></svg> Play';
-  if(isPlaying){
-    if(currentPos>=0.99){ currentPos=0; triggeredWords.clear(); }
-    startPlay();
-  } else {
-    if(playInterval){clearInterval(playInterval);playInterval=null;}
-  }
-});
+  btn.innerHTML=isPlaying
+    ?'<svg width="8" height="10" viewBox="0 0 10 10"><rect x="0" y="0" width="3" height="10" fill="currentColor"/><rect x="5" y="0" width="3" height="10" fill="currentColor"/></svg> Pause'
+    :'<svg width="8" height="10" viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12" fill="currentColor"/></svg> Play';
+  if(isPlaying){ if(pos>=0.99){pos=0;done.clear();} startPlay(); }
+  else { clearInterval(playTimer); playTimer=null; }
+};
 
 function startPlay(){
-  const dur = sd().dur||60;
-  if(playInterval) clearInterval(playInterval);
-  playInterval = setInterval(()=>{
-    if(!isPlaying){clearInterval(playInterval);return;}
-    currentPos += 0.1/dur;
-    if(currentPos>=1){
-      currentPos=1; isPlaying=false; clearInterval(playInterval);
-      document.getElementById('btn-play').classList.remove('playing');
-      document.getElementById('btn-play').innerHTML='<svg width="8" height="10" viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12" fill="currentColor"/></svg> Play';
-      return;
-    }
-    document.getElementById('elapsed').textContent = fmtTime(currentPos*dur);
-    checkWords(currentPos);
+  const dur=sd().dur||60;
+  document.getElementById('total').textContent=fmt(dur);
+  clearInterval(playTimer);
+  playTimer=setInterval(()=>{
+    if(!isPlaying){clearInterval(playTimer);return;}
+    pos+=0.1/dur;
+    if(pos>=1){ pos=1; stop(); return; }
+    document.getElementById('elapsed').textContent=fmt(pos*dur);
+    document.getElementById('progress-fill').style.width=(pos*100)+'%';
+    fireWords(pos);
   },100);
 }
 
-function checkWords(pos){
-  const words = sd().words;
-  if(!words||!words.length) return;
-  const wc = words.length;
-  const wordIdx = Math.min(Math.floor(pos*wc), wc-1);
-  for(let i=0;i<=wordIdx;i++){
-    const word = words[i];
-    if(!word||!word.tag) continue;
-    const key = currentSubjId+':'+i;
-    if(triggeredWords.has(key)) continue;
-    triggeredWords.add(key);
-    // send command to canvas
-    bc.postMessage({
-      type:'trigger',
-      shape:word.tag.shape,
-      color:word.tag.color,
-      transition:word.tag.transition,
-      word:word.text,
-      customPoints:word.tag.customPoints||null
-    });
+function stop(){
+  isPlaying=false; clearInterval(playTimer); playTimer=null;
+  const btn=document.getElementById('btn-play');
+  btn.classList.remove('playing');
+  btn.innerHTML='<svg width="8" height="10" viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12" fill="currentColor"/></svg> Play';
+}
+
+function fireWords(p){
+  const words=sd().words; if(!words||!words.length) return;
+  const wc=words.length, wi=Math.min(Math.floor(p*wc),wc-1);
+  for(let i=0;i<=wi;i++){
+    const w=words[i]; if(!w||!w.tag) continue;
+    const k=subjId+':'+i; if(done.has(k)) continue;
+    done.add(k);
+    bc.postMessage({type:'trigger',shape:w.tag.shape,color:w.tag.color,transition:w.tag.transition,word:w.text,customPoints:w.tag.customPoints||null});
+    // mirror on mini canvas
+    const s=SUBJECTS.find(x=>x.shape===w.tag.shape)||SUBJECTS[subjId];
+    mSet(w.tag.shape,w.tag.color,rgb(w.tag.color),s.chaos,s.speed,w.tag.customPoints||null);
+    document.getElementById('preview-word').textContent='"'+w.text+'"';
+    document.getElementById('preview-word').style.color=w.tag.color||'var(--accent)';
   }
 }
 
-// ── Save/Load ──
-const PREFIX = 'insight_studio_';
-let pendingSlot = null;
+// progress track click
+document.getElementById('progress-track').onclick=e=>{
+  const rect=e.currentTarget.getBoundingClientRect();
+  pos=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
+  document.getElementById('elapsed').textContent=fmt(pos*(sd().dur||60));
+  document.getElementById('progress-fill').style.width=(pos*100)+'%';
+  done.clear();
+};
 
-function toast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2000);
-}
+// ── Save / Load ──
+const PFX='insight_v2_';
+let pendingSlot=null;
 
-document.getElementById('btn-save').addEventListener('click',()=>{
-  document.querySelectorAll('.save-slot').forEach(s=>{s.style.borderColor='var(--accent)';setTimeout(()=>{s.style.borderColor='';},1800);});
-  toast('Click a slot to save'); pendingSlot='pick';
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
+function saveSlots(){ document.querySelectorAll('.slot').forEach(s=>s.classList.toggle('filled',!!localStorage.getItem(PFX+s.dataset.slot))); }
+
+document.getElementById('btn-save').onclick=()=>{
+  document.querySelectorAll('.slot').forEach(s=>{s.style.borderColor='var(--accent)';setTimeout(()=>s.style.borderColor='',1800);});
+  toast('Click S1 S2 or S3 to save'); pendingSlot='pick';
+};
+document.querySelectorAll('.slot').forEach(slot=>slot.onclick=()=>{
+  const key=PFX+slot.dataset.slot;
+  if(pendingSlot==='pick'){
+    sd().script=document.getElementById('script-textarea').value;
+    localStorage.setItem(key,JSON.stringify({SD:JSON.parse(JSON.stringify(SD)),at:new Date().toLocaleString()}));
+    pendingSlot=null; saveSlots(); toast('Saved to slot '+slot.dataset.slot);
+  } else {
+    const raw=localStorage.getItem(key);
+    if(raw){ try{ const d=JSON.parse(raw); Object.keys(d.SD).forEach(id=>{if(SD[id])Object.assign(SD[id],d.SD[id]);}); switchSubj(subjId); saveSlots(); toast('Loaded slot '+slot.dataset.slot); }catch(e){toast('Error');} }
+    else{ document.getElementById('btn-save').onclick(); }
+  }
 });
-
-document.querySelectorAll('.save-slot').forEach(slot=>{
-  slot.addEventListener('click',()=>{
-    const key = PREFIX+'slot_'+slot.dataset.slot;
-    if(pendingSlot==='pick'){
-      saveState();
-      localStorage.setItem(key,JSON.stringify({SD:JSON.parse(JSON.stringify(SD)),savedAt:new Date().toLocaleString()}));
-      pendingSlot=null; updateSlots(); toast('Saved to slot '+slot.dataset.slot);
-    } else {
-      const raw = localStorage.getItem(key);
-      if(raw){ try{ const d=JSON.parse(raw); Object.keys(d.SD).forEach(id=>{if(SD[id])Object.assign(SD[id],d.SD[id]);}); loadState(currentSubjId); updateSlots(); toast('Loaded slot '+slot.dataset.slot); }catch(e){toast('Error');} }
-      else { document.getElementById('btn-save').click(); }
-    }
-  });
-});
-
-function updateSlots(){
-  document.querySelectorAll('.save-slot').forEach(slot=>{
-    const raw = localStorage.getItem(PREFIX+'slot_'+slot.dataset.slot);
-    slot.classList.toggle('has-data',!!raw);
-  });
-}
-
-// auto-restore slot 1
-(function(){ const raw=localStorage.getItem(PREFIX+'slot_1'); if(raw){ try{ const d=JSON.parse(raw); Object.keys(d.SD).forEach(id=>{if(SD[id])Object.assign(SD[id],d.SD[id]);}); }catch(e){} } updateSlots(); })();
+(()=>{ const raw=localStorage.getItem(PFX+'1'); if(raw){try{const d=JSON.parse(raw);Object.keys(d.SD).forEach(id=>{if(SD[id])Object.assign(SD[id],d.SD[id]);});}catch(e){}} saveSlots(); })();
 
 // ══════════════════════════════════════
 // MINI PARTICLE ENGINE
 // ══════════════════════════════════════
-const miniCanvas = document.getElementById('mini-canvas');
-const mctx = miniCanvas.getContext('2d');
-let MW = 0, MH = 0, MN = 600;
-let mParticles = [], mTargets = [], mSubj = null, mTick = 0;
-let mExploding = false, mExplodeTimer = 0;
+const mc=document.getElementById('mini-canvas');
+const mctx=mc.getContext('2d');
+var MW=0,MH=0,MN=500;
+var mP=[],mT=[],mTick=0,mExp=false,mExpT=0;
+var mS=null;
 
-// Perlin noise (same as main)
-const MP = new Uint8Array(512);
-(function(){const b=new Uint8Array(256);for(let i=0;i<256;i++)b[i]=i;for(let i=255;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}for(let i=0;i<512;i++)MP[i]=b[i&255];})();
-function mfade(t){return t*t*t*(t*(t*6-15)+10);}
-function mlerp(a,b,t){return a+t*(b-a);}
-function mgrad(h,x,y){const u=h<8?x:y,v=h<4?y:h===12||h===14?x:0;return((h&1)?-u:u)+((h&2)?-v:v);}
-function mnoise(x,y){const X=Math.floor(x)&255,Y=Math.floor(y)&255;x-=Math.floor(x);y-=Math.floor(y);const u=mfade(x),v=mfade(y),A=MP[X]+Y,B=MP[X+1]+Y;return mlerp(mlerp(mgrad(MP[A],x,y),mgrad(MP[B],x-1,y),u),mlerp(mgrad(MP[A+1],x,y-1),mgrad(MP[B+1],x-1,y-1),u),v);}
-
-function mResize(){
-  MW = miniCanvas.offsetWidth;
-  MH = miniCanvas.offsetHeight;
-  miniCanvas.width = MW;
-  miniCanvas.height = MH;
+// Perlin
+const PP=new Uint8Array(512);
+(()=>{const b=new Uint8Array(256);for(let i=0;i<256;i++)b[i]=i;for(let i=255;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}for(let i=0;i<512;i++)PP[i]=b[i&255];})();
+function pnoise(x,y){
+  const X=Math.floor(x)&255,Y=Math.floor(y)&255;x-=Math.floor(x);y-=Math.floor(y);
+  const u=x*x*x*(x*(x*6-15)+10),v=y*y*y*(y*(y*6-15)+10);
+  const A=PP[X]+Y,B=PP[X+1]+Y;
+  function g(h,x,y){const u=h<8?x:y,v=h<4?y:h===12||h===14?x:0;return((h&1)?-u:u)+((h&2)?-v:v);}
+  function l(a,b,t){return a+t*(b-a);}
+  return l(l(g(PP[A],x,y),g(PP[B],x-1,y),u),l(g(PP[A+1],x,y-1),g(PP[B+1],x-1,y-1),u),v);
 }
 
-function mInitParticles(){
-  mParticles = [];
-  for(let i=0;i<MN;i++){
-    const a=Math.random()*Math.PI*2, r=Math.random()*20;
-    mParticles.push({x:MW/2+Math.cos(a)*r, y:MH/2+Math.sin(a)*r, z:Math.random(), vx:0, vy:0, baseSize:Math.random()*1.1+0.2, phase:Math.random()*Math.PI*2, phaseY:Math.random()*Math.PI*2, mass:0.7+Math.random()*0.6, friction:0.82+Math.random()*0.08});
-  }
+function mResize(){ MW=mc.offsetWidth; MH=mc.offsetHeight; mc.width=MW; mc.height=MH; }
+function mInit(){
+  mP=[];
+  for(let i=0;i<MN;i++){const a=Math.random()*Math.PI*2,r=Math.random()*15;mP.push({x:MW/2+Math.cos(a)*r,y:MH/2+Math.sin(a)*r,z:Math.random(),vx:0,vy:0,sz:Math.random()*1.1+0.2,ph:Math.random()*Math.PI*2,phy:Math.random()*Math.PI*2,m:0.7+Math.random()*0.6,f:0.82+Math.random()*0.08});}
 }
 
-function mComputeTargets(shape, color, customPts){
-  const cx=MW/2, cy=MH/2;
-  const pts = [];
-  const s = Math.min(MW,MH)*0.38;
-
+function mTargets(shape,customPoints){
+  const cx=MW/2,cy=MH/2,s=Math.min(MW,MH)*0.36;
+  const pts=[];
   if(shape==='human'){
-    for(let i=0;i<80;i++){const a=Math.random()*Math.PI*2,r=s*0.18*(0.6+Math.random()*0.4);pts.push([cx+Math.cos(a)*r,cy-s*0.44+Math.sin(a)*r]);}
-    for(let i=0;i<150;i++){const t=Math.random(),hw=s*(0.21-t*0.055);pts.push([cx+(Math.random()-0.5)*hw*2,cy-s*0.18+t*s*0.52]);}
-    for(const side of[-1,1])for(let i=0;i<80;i++){const t=Math.random();pts.push([cx+side*(s*0.065+t*t*0.07*s),cy+s*0.34+t*s*0.46]);}
+    for(let i=0;i<100;i++){const a=Math.random()*Math.PI*2,r=s*0.17*(0.6+Math.random()*0.4);pts.push([cx+Math.cos(a)*r,cy-s*0.43+Math.sin(a)*r]);}
+    for(let i=0;i<200;i++){const t=Math.random(),hw=s*(0.20-t*0.05);pts.push([cx+(Math.random()-0.5)*hw*2,cy-s*0.17+t*s*0.50]);}
+    for(const side of[-1,1])for(let i=0;i<100;i++){const t=Math.random(),sp2=t*t*0.07;pts.push([cx+side*(s*0.06+sp2*s),cy+s*0.33+t*s*0.44]);}
   } else if(shape==='vortex'){
-    for(let i=0;i<MN;i++){const t=i/MN,arm=i%3,base=(arm/3)*Math.PI*2;const a=base+t*Math.PI*2*5+(Math.random()-0.5)*0.35;const r=Math.pow(t,0.6)*s*(0.88+Math.random()*0.12);pts.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r]);}
+    for(let i=0;i<MN;i++){const t=i/MN,arm=i%3,base=(arm/3)*Math.PI*2;const a=base+t*Math.PI*2*5+(Math.random()-0.5)*0.3;const r2=Math.pow(t,0.6)*s*0.9;pts.push([cx+Math.cos(a)*r2,cy+Math.sin(a)*r2]);}
   } else if(shape==='expand'){
-    const rings=[{r:0,w:0.04,n:20},{r:0.35,w:0.02,n:100},{r:0.65,w:0.018,n:180},{r:0.9,w:0.014,n:200}];
-    for(const ring of rings)for(let i=0;i<ring.n;i++){const a=Math.random()*Math.PI*2,r=(ring.r+(Math.random()-0.5)*ring.w)*s;pts.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r]);}
+    const rings=[{r:0,n:15},{r:0.3,n:80},{r:0.6,n:150},{r:0.9,n:180}];
+    for(const ring of rings)for(let i=0;i<ring.n;i++){const a=Math.random()*Math.PI*2;pts.push([cx+Math.cos(a)*ring.r*s,cy+Math.sin(a)*ring.r*s]);}
   } else if(shape==='cube'){
     const VERTS=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
     const EDGES=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
     const t2=mTick*0.006;
     function rot(v){let[x,y,z]=v;const a1=t2*0.55;[x,y]=[x*Math.cos(a1)-y*Math.sin(a1),x*Math.sin(a1)+y*Math.cos(a1)];const a2=t2*0.38;[x,z]=[x*Math.cos(a2)-z*Math.sin(a2),x*Math.sin(a2)+z*Math.cos(a2)];return[x,y,z];}
-    function proj(v){const[x,y,z]=rot(v);const f=1/(3.8-z);return[cx+x*f*s*1.8,cy+y*f*s*1.8];}
-    const projected=VERTS.map(proj);
-    const perEdge=Math.floor(MN/EDGES.length);
-    for(const[ea,eb] of EDGES)for(let i=0;i<perEdge;i++){const ta=i/perEdge;const pa=projected[ea],pb=projected[eb];pts.push([pa[0]+(pb[0]-pa[0])*ta+(Math.random()-0.5)*1.2,pa[1]+(pb[1]-pa[1])*ta+(Math.random()-0.5)*1.2]);}
-  } else if(shape==='custom'&&customPts&&customPts.length){
-    for(const[x,y] of customPts) pts.push([cx+x*s*0.8,cy+y*s*0.8+(Math.random()-0.5)]);
-  } else if(shape==='text_display'||shape==='text'){
-    // fallback to expand for text
-    for(let i=0;i<MN;i++){const a=Math.random()*Math.PI*2,r=(0.3+Math.random()*0.6)*s;pts.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r]);}
+    function proj(v){const[x,y,z]=rot(v);const f=1/(3.8-z);return[cx+x*f*s*1.6,cy+y*f*s*1.6];}
+    const pr=VERTS.map(proj);
+    const pe=Math.floor(MN/EDGES.length);
+    for(const[ea,eb]of EDGES)for(let i=0;i<pe;i++){const ta=i/pe,pa=pr[ea],pb=pr[eb];pts.push([pa[0]+(pb[0]-pa[0])*ta+(Math.random()-0.5),pa[1]+(pb[1]-pa[1])*ta+(Math.random()-0.5)]);}
+  } else if(shape==='custom'&&customPoints&&customPoints.length){
+    for(const[x,y]of customPoints)pts.push([cx+x*s*0.85,cy+y*s*0.85]);
   } else {
-    for(let i=0;i<MN;i++){const a=Math.random()*Math.PI*2,r=Math.random()*s*0.8;pts.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r]);}
+    for(let i=0;i<MN;i++){const a=Math.random()*Math.PI*2,r2=(0.2+Math.random()*0.7)*s;pts.push([cx+Math.cos(a)*r2,cy+Math.sin(a)*r2]);}
   }
-
-  while(pts.length<MN) pts.push(pts[Math.floor(Math.random()*pts.length)]);
+  while(pts.length<MN)pts.push(pts[Math.floor(Math.random()*pts.length)]);
   return pts.slice(0,MN);
+}
+
+function mSet(shape,accent,rgbVal,chaos,speed,customPoints){
+  mS={shape,accent,rgb:rgbVal||rgb(accent),chaos:chaos||0.2,speed:speed||0.5};
+  mExp=true; mExpT=0;
+  mT=mTargets(shape,customPoints);
 }
 
 function mDraw(){
   mTick++;
-  const chaos = mSubj?mSubj.chaos:0.15;
-  const persistence = chaos>0.8?0.62:0.78;
-  mctx.fillStyle=`rgba(5,5,10,${persistence})`;
+  mctx.fillStyle=`rgba(5,5,10,${mS&&mS.chaos>0.8?0.62:0.78})`;
   mctx.fillRect(0,0,MW,MH);
-  if(!mSubj||!mParticles.length){requestAnimationFrame(mDraw);return;}
-
-  const [r,g,b]=mSubj.rgb;
-  const spd=mSubj.speed, isCube=mSubj.shape==='cube', isExp=mExploding;
+  if(!mS||!mP||!mP.length){requestAnimationFrame(mDraw);return;}
 
   // cube: update targets each frame
-  if(isCube&&!isExp){
-    const cx=MW/2,cy=MH/2,s=Math.min(MW,MH)*0.38;
+  if(mS.shape==='cube'&&!mExp){
+    const cx=MW/2,cy=MH/2,s=Math.min(MW,MH)*0.36;
     const VERTS=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
     const EDGES=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
     const t2=mTick*0.005;
     function rot(v){let[x,y,z]=v;const a1=t2*0.55;[x,y]=[x*Math.cos(a1)-y*Math.sin(a1),x*Math.sin(a1)+y*Math.cos(a1)];const a2=t2*0.38;[x,z]=[x*Math.cos(a2)-z*Math.sin(a2),x*Math.sin(a2)+z*Math.cos(a2)];return[x,y,z];}
-    function proj(v){const[x,y,z]=rot(v);const f=1/(3.8-z);return[cx+x*f*s*1.8,cy+y*f*s*1.8];}
-    const projected=VERTS.map(proj);
-    const perEdge=Math.floor(MN/EDGES.length);
+    function proj(v){const[x,y,z]=rot(v);const f=1/(3.8-z);return[cx+x*f*s*1.6,cy+y*f*s*1.6];}
+    const pr=VERTS.map(proj);
+    const pe=Math.floor(MN/EDGES.length);
     let pi=0;
-    for(const[ea,eb] of EDGES)for(let i=0;i<perEdge;i++,pi++){
-      const ta=i/perEdge;const pa=projected[ea],pb=projected[eb];
-      if(mTargets[pi]){mTargets[pi][0]=pa[0]+(pb[0]-pa[0])*ta;mTargets[pi][1]=pa[1]+(pb[1]-pa[1])*ta;}
+    for(const[ea,eb]of EDGES)for(let i=0;i<pe;i++,pi++){
+      const ta=i/pe,pa=pr[ea],pb=pr[eb];
+      if(mT[pi]){mT[pi][0]=pa[0]+(pb[0]-pa[0])*ta;mT[pi][1]=pa[1]+(pb[1]-pa[1])*ta;}
     }
   }
 
+  const[r,g,b]=mS.rgb, chaos=mS.chaos, spd=mS.speed, isExp=mExp;
   for(let i=0;i<MN;i++){
-    const p=mParticles[i], t=mTargets[i]; if(!t) continue;
+    const p=mP[i],t=mT[i]; if(!t) continue;
     if(isExp){p.vx+=(Math.random()-0.5)*3;p.vy+=(Math.random()-0.5)*3;p.vx*=0.91;p.vy*=0.91;}
     else{
-      const dx=t[0]-p.x, dy=t[1]-p.y;
-      const nm=isCube?0.2:chaos*2.8;
-      const nx=mnoise(p.x*0.004+mTick*0.004*spd,p.phase)*nm;
-      const ny=mnoise(p.y*0.004+mTick*0.003*spd,p.phaseY)*nm;
-      const pull=isCube?0.042*p.mass:0.024*p.mass*(1+chaos*0.3);
-      const fric=isCube?0.80:p.friction;
+      const dx=t[0]-p.x,dy=t[1]-p.y;
+      const nm=mS.shape==='cube'?0.2:chaos*2.8;
+      const nx=pnoise(p.x*0.005+mTick*0.004*spd,p.ph)*nm;
+      const ny=pnoise(p.y*0.005+mTick*0.003*spd,p.phy)*nm;
+      const pull=mS.shape==='cube'?0.042*p.m:0.024*p.m*(1+chaos*0.3);
+      const fric=mS.shape==='cube'?0.80:p.f;
       p.vx=(p.vx+dx*pull+nx)*fric; p.vy=(p.vy+dy*pull+ny)*fric;
     }
     p.x+=p.vx; p.y+=p.vy;
-    const sz=p.baseSize*(0.35+p.z*0.8);
+    const sz=p.sz*(0.35+p.z*0.8);
     const alpha=isExp?0.2:(0.5+p.z*0.45);
     mctx.beginPath(); mctx.arc(p.x,p.y,Math.max(0.1,sz),0,Math.PI*2);
     mctx.fillStyle=`rgba(${r},${g},${b},${Math.min(1,alpha)})`; mctx.fill();
   }
-  if(isExp){mExplodeTimer++;if(mExplodeTimer>24){mExploding=false;mExplodeTimer=0;}}
+  if(isExp){mExpT++;if(mExpT>24){mExp=false;mExpT=0;}}
   requestAnimationFrame(mDraw);
 }
 
-function mSetSubject(subjId, customColor, customShape, customPts){
-  const baseSubjs=[
-    {id:0,accent:'#b8a47a',rgb:[184,164,122],shape:'human',chaos:0.26,speed:0.5},
-    {id:1,accent:'#9b3f3f',rgb:[155,63,63],shape:'vortex',chaos:0.94,speed:2.1},
-    {id:2,accent:'#6b9ea8',rgb:[107,158,168],shape:'expand',chaos:0.09,speed:0.3},
-    {id:3,accent:'#00c8ff',rgb:[0,200,255],shape:'cube',chaos:0.18,speed:0.75}
-  ];
-
-  let subj;
-  if(customShape){
-    const base = baseSubjs.find(s=>s.shape===customShape)||baseSubjs[0];
-    const accent = customColor||base.accent;
-    subj = {...base, accent, rgb:hexToRgb(accent), shape:customShape};
-  } else {
-    subj = baseSubjs.find(s=>s.id===subjId)||baseSubjs[0];
-    if(customColor) subj = {...subj, accent:customColor, rgb:hexToRgb(customColor)};
-  }
-
-  mExploding=true; mExplodeTimer=0;
-  mSubj = subj;
-  mTargets = mComputeTargets(subj.shape, subj.accent, customPts||null);
-
-  const nameEl = document.getElementById('mini-subject-name');
-  nameEl.textContent = customShape ? (customShape.charAt(0).toUpperCase()+customShape.slice(1)) : subjects.find(s=>s.id===subjId)?.title||'';
-  nameEl.style.color = subj.accent;
-}
-
-window.addEventListener('resize', mResize);
-mResize(); mInitParticles(); mDraw();
-
-// Show current subject in mini preview on tab switch
-function updateMiniPreview(){
-  mSetSubject(currentSubjId, null, null, null);
-}
-
+window.addEventListener('resize',()=>{mResize();if(mS)mT=mTargets(mS.shape,null);});
+mResize(); mInit(); mDraw();
+// init tabs AFTER mini engine is ready
 buildTabs();
+switchSubj(0);
 </script>
 </body>
 </html>
