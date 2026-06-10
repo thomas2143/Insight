@@ -1159,6 +1159,8 @@ const audioEl=document.getElementById('audio-el');
 
 document.getElementById('btn-studio-play').addEventListener('click',togglePlay);
 
+const triggeredWords = new Set();
+
 function togglePlay(){
   isPlaying=!isPlaying;
   const btn=document.getElementById('btn-studio-play');
@@ -1167,7 +1169,10 @@ function togglePlay(){
     ?'<svg width="8" height="10" viewBox="0 0 10 10"><rect x="0" y="0" width="3" height="10" fill="currentColor"/><rect x="5" y="0" width="3" height="10" fill="currentColor"/></svg> Pause'
     :'<svg width="8" height="10" viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12" fill="currentColor"/></svg> Play';
   if(isPlaying){
-    if(currentPos>=0.99) currentPos=0;
+    if(currentPos>=0.99){
+      currentPos=0;
+      triggeredWords.clear(); // reset triggered words on restart
+    }
     startPlayback();
   } else {
     if(playInterval){ clearInterval(playInterval); playInterval=null; }
@@ -1176,8 +1181,16 @@ function togglePlay(){
 
 function startPlayback(){
   const sd=getSD();
-  const dur=sd.dur||60;
+  // calculate duration from word count if not set
+  if(!sd.dur){
+    const wc=(sd.words||[]).length;
+    sd.dur = Math.max(10, Math.ceil((wc/WPM)*60));
+  }
+  const dur=sd.dur;
+  document.getElementById('studio-total').textContent=fmtTime(dur);
+
   if(playInterval) clearInterval(playInterval);
+  // 100ms intervals = 10 updates/sec
   playInterval=setInterval(()=>{
     if(!isPlaying){ clearInterval(playInterval); return; }
     currentPos+=0.1/dur;
@@ -1193,21 +1206,24 @@ function startPlayback(){
 }
 
 // ── Check which word should trigger ──
-let lastTriggeredWord=null;
 function checkWordsAt(pos){
   const sd=getSD();
   if(!sd.words||!sd.words.length) return;
   const wc=sd.words.length;
-  const dur=sd.dur||60;
-  // find word at this position
-  const wordIdx=Math.floor(pos*wc);
-  const word=sd.words[wordIdx];
-  if(!word||!word.tag) return;
-  const wordKey=studioSubjectId+':'+wordIdx;
-  if(wordKey===lastTriggeredWord) return;
-  lastTriggeredWord=wordKey;
-  triggerWordTag(word.tag, word.text);
-  setTimeout(()=>{ if(lastTriggeredWord===wordKey) lastTriggeredWord=null; },1200);
+  // current word index based on position
+  const wordIdx=Math.min(Math.floor(pos*wc), wc-1);
+  // scan from last triggered up to current to catch any we may have skipped
+  for(let i=0; i<=wordIdx; i++){
+    const word=sd.words[i];
+    if(!word||!word.tag) continue;
+    const wordKey=studioSubjectId+':'+i;
+    if(triggeredWords.has(wordKey)) continue; // already triggered
+    // only trigger if we're at or past this word
+    if(i <= wordIdx){
+      triggeredWords.add(wordKey);
+      triggerWordTag(word.tag, word.text);
+    }
+  }
 }
 
 // Preview only — temporary visual, doesn't save state
