@@ -12,7 +12,7 @@
 html,body { width:100%; height:100%; background:var(--bg); color:var(--text); font-family:'Outfit',sans-serif; overflow:hidden; }
 
 /* Layout */
-#studio { display:grid; grid-template-rows:44px 1fr 48px; height:100vh; }
+#studio { display:grid; grid-template-rows:44px 160px 1fr 48px; height:100vh; }
 
 /* Header */
 #studio-header { display:flex; align-items:center; justify-content:space-between; padding:0 20px; border-bottom:0.5px solid var(--border); background:rgba(5,5,10,0.98); }
@@ -23,6 +23,30 @@ html,body { width:100%; height:100%; background:var(--bg); color:var(--text); fo
 .subj-tab.active { color:var(--tab-accent,var(--accent)); border-bottom-color:var(--tab-accent,var(--accent)); }
 .subj-tab-dot { width:5px; height:5px; border-radius:50%; background:var(--tab-accent,var(--accent)); opacity:0.6; flex-shrink:0; }
 .subj-tab.active .subj-tab-dot { opacity:1; }
+
+/* Mini preview canvas */
+#mini-preview {
+  grid-column:1/3;
+  background:#05050a;
+  border-bottom:0.5px solid var(--border);
+  position:relative;
+  overflow:hidden;
+}
+#mini-canvas { display:block; width:100%; height:100%; }
+#mini-label {
+  position:absolute; bottom:10px; left:50%;
+  transform:translateX(-50%);
+  font-size:8px; font-weight:200; letter-spacing:0.28em;
+  text-transform:uppercase; color:rgba(232,224,208,0.25);
+  white-space:nowrap; pointer-events:none;
+}
+#mini-subject-name {
+  position:absolute; top:10px; left:20px;
+  font-family:'Cormorant Garamond',serif; font-size:14px; font-weight:300;
+  letter-spacing:0.12em; text-transform:uppercase;
+  color:rgba(232,224,208,0.4); pointer-events:none;
+  transition:color 0.5s;
+}
 
 /* Body */
 #studio-body { display:grid; grid-template-columns:320px 1fr; overflow:hidden; }
@@ -104,6 +128,12 @@ select, input[type=text] { background:rgba(255,255,255,0.04); border:0.5px solid
   <div id="studio-header">
     <div id="studio-title">I<span style="color:var(--accent)">N</span>SIGHT Studio</div>
     <div id="subject-tabs"><!-- injected by JS --></div>
+  </div>
+
+  <div id="mini-preview">
+    <canvas id="mini-canvas"></canvas>
+    <div id="mini-subject-name">Avatar</div>
+    <div id="mini-label">Live preview</div>
   </div>
 
   <div id="studio-body">
@@ -241,6 +271,7 @@ function switchSubject(id){
   if(subj){ document.documentElement.style.setProperty('--accent',subj.accent); }
   loadState(id);
   bc.postMessage({type:'select_subject', subjectId:id});
+  updateMiniPreview();
 }
 
 function saveState(){
@@ -397,6 +428,8 @@ document.getElementById('btn-preview').addEventListener('click',()=>{
     word: word?.text||'',
     customPoints: shape==='custom'&&customPoints?customPoints:null
   });
+  // also show in mini preview
+  mSetSubject(currentSubjId, editingColor, shape, shape==='custom'&&customPoints?customPoints:null);
 });
 
 // ── Apply ──
@@ -560,6 +593,159 @@ function updateSlots(){
 
 // auto-restore slot 1
 (function(){ const raw=localStorage.getItem(PREFIX+'slot_1'); if(raw){ try{ const d=JSON.parse(raw); Object.keys(d.SD).forEach(id=>{if(SD[id])Object.assign(SD[id],d.SD[id]);}); }catch(e){} } updateSlots(); })();
+
+// ══════════════════════════════════════
+// MINI PARTICLE ENGINE
+// ══════════════════════════════════════
+const miniCanvas = document.getElementById('mini-canvas');
+const mctx = miniCanvas.getContext('2d');
+let MW = 0, MH = 0, MN = 600;
+let mParticles = [], mTargets = [], mSubj = null, mTick = 0;
+let mExploding = false, mExplodeTimer = 0;
+
+// Perlin noise (same as main)
+const MP = new Uint8Array(512);
+(function(){const b=new Uint8Array(256);for(let i=0;i<256;i++)b[i]=i;for(let i=255;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}for(let i=0;i<512;i++)MP[i]=b[i&255];})();
+function mfade(t){return t*t*t*(t*(t*6-15)+10);}
+function mlerp(a,b,t){return a+t*(b-a);}
+function mgrad(h,x,y){const u=h<8?x:y,v=h<4?y:h===12||h===14?x:0;return((h&1)?-u:u)+((h&2)?-v:v);}
+function mnoise(x,y){const X=Math.floor(x)&255,Y=Math.floor(y)&255;x-=Math.floor(x);y-=Math.floor(y);const u=mfade(x),v=mfade(y),A=MP[X]+Y,B=MP[X+1]+Y;return mlerp(mlerp(mgrad(MP[A],x,y),mgrad(MP[B],x-1,y),u),mlerp(mgrad(MP[A+1],x,y-1),mgrad(MP[B+1],x-1,y-1),u),v);}
+
+function mResize(){
+  MW = miniCanvas.offsetWidth;
+  MH = miniCanvas.offsetHeight;
+  miniCanvas.width = MW;
+  miniCanvas.height = MH;
+}
+
+function mInitParticles(){
+  mParticles = [];
+  for(let i=0;i<MN;i++){
+    const a=Math.random()*Math.PI*2, r=Math.random()*20;
+    mParticles.push({x:MW/2+Math.cos(a)*r, y:MH/2+Math.sin(a)*r, z:Math.random(), vx:0, vy:0, baseSize:Math.random()*1.1+0.2, phase:Math.random()*Math.PI*2, phaseY:Math.random()*Math.PI*2, mass:0.7+Math.random()*0.6, friction:0.82+Math.random()*0.08});
+  }
+}
+
+function mComputeTargets(shape, color, customPts){
+  const cx=MW/2, cy=MH/2;
+  const pts = [];
+  const s = Math.min(MW,MH)*0.38;
+
+  if(shape==='human'){
+    for(let i=0;i<80;i++){const a=Math.random()*Math.PI*2,r=s*0.18*(0.6+Math.random()*0.4);pts.push([cx+Math.cos(a)*r,cy-s*0.44+Math.sin(a)*r]);}
+    for(let i=0;i<150;i++){const t=Math.random(),hw=s*(0.21-t*0.055);pts.push([cx+(Math.random()-0.5)*hw*2,cy-s*0.18+t*s*0.52]);}
+    for(const side of[-1,1])for(let i=0;i<80;i++){const t=Math.random();pts.push([cx+side*(s*0.065+t*t*0.07*s),cy+s*0.34+t*s*0.46]);}
+  } else if(shape==='vortex'){
+    for(let i=0;i<MN;i++){const t=i/MN,arm=i%3,base=(arm/3)*Math.PI*2;const a=base+t*Math.PI*2*5+(Math.random()-0.5)*0.35;const r=Math.pow(t,0.6)*s*(0.88+Math.random()*0.12);pts.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r]);}
+  } else if(shape==='expand'){
+    const rings=[{r:0,w:0.04,n:20},{r:0.35,w:0.02,n:100},{r:0.65,w:0.018,n:180},{r:0.9,w:0.014,n:200}];
+    for(const ring of rings)for(let i=0;i<ring.n;i++){const a=Math.random()*Math.PI*2,r=(ring.r+(Math.random()-0.5)*ring.w)*s;pts.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r]);}
+  } else if(shape==='cube'){
+    const VERTS=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
+    const EDGES=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+    const t2=mTick*0.006;
+    function rot(v){let[x,y,z]=v;const a1=t2*0.55;[x,y]=[x*Math.cos(a1)-y*Math.sin(a1),x*Math.sin(a1)+y*Math.cos(a1)];const a2=t2*0.38;[x,z]=[x*Math.cos(a2)-z*Math.sin(a2),x*Math.sin(a2)+z*Math.cos(a2)];return[x,y,z];}
+    function proj(v){const[x,y,z]=rot(v);const f=1/(3.8-z);return[cx+x*f*s*1.8,cy+y*f*s*1.8];}
+    const projected=VERTS.map(proj);
+    const perEdge=Math.floor(MN/EDGES.length);
+    for(const[ea,eb] of EDGES)for(let i=0;i<perEdge;i++){const ta=i/perEdge;const pa=projected[ea],pb=projected[eb];pts.push([pa[0]+(pb[0]-pa[0])*ta+(Math.random()-0.5)*1.2,pa[1]+(pb[1]-pa[1])*ta+(Math.random()-0.5)*1.2]);}
+  } else if(shape==='custom'&&customPts&&customPts.length){
+    for(const[x,y] of customPts) pts.push([cx+x*s*0.8,cy+y*s*0.8+(Math.random()-0.5)]);
+  } else if(shape==='text_display'||shape==='text'){
+    // fallback to expand for text
+    for(let i=0;i<MN;i++){const a=Math.random()*Math.PI*2,r=(0.3+Math.random()*0.6)*s;pts.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r]);}
+  } else {
+    for(let i=0;i<MN;i++){const a=Math.random()*Math.PI*2,r=Math.random()*s*0.8;pts.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r]);}
+  }
+
+  while(pts.length<MN) pts.push(pts[Math.floor(Math.random()*pts.length)]);
+  return pts.slice(0,MN);
+}
+
+function mDraw(){
+  mTick++;
+  const chaos = mSubj?mSubj.chaos:0.15;
+  const persistence = chaos>0.8?0.62:0.78;
+  mctx.fillStyle=`rgba(5,5,10,${persistence})`;
+  mctx.fillRect(0,0,MW,MH);
+  if(!mSubj||!mParticles.length){requestAnimationFrame(mDraw);return;}
+
+  const [r,g,b]=mSubj.rgb;
+  const spd=mSubj.speed, isCube=mSubj.shape==='cube', isExp=mExploding;
+
+  // cube: update targets each frame
+  if(isCube&&!isExp){
+    const cx=MW/2,cy=MH/2,s=Math.min(MW,MH)*0.38;
+    const VERTS=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
+    const EDGES=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+    const t2=mTick*0.005;
+    function rot(v){let[x,y,z]=v;const a1=t2*0.55;[x,y]=[x*Math.cos(a1)-y*Math.sin(a1),x*Math.sin(a1)+y*Math.cos(a1)];const a2=t2*0.38;[x,z]=[x*Math.cos(a2)-z*Math.sin(a2),x*Math.sin(a2)+z*Math.cos(a2)];return[x,y,z];}
+    function proj(v){const[x,y,z]=rot(v);const f=1/(3.8-z);return[cx+x*f*s*1.8,cy+y*f*s*1.8];}
+    const projected=VERTS.map(proj);
+    const perEdge=Math.floor(MN/EDGES.length);
+    let pi=0;
+    for(const[ea,eb] of EDGES)for(let i=0;i<perEdge;i++,pi++){
+      const ta=i/perEdge;const pa=projected[ea],pb=projected[eb];
+      if(mTargets[pi]){mTargets[pi][0]=pa[0]+(pb[0]-pa[0])*ta;mTargets[pi][1]=pa[1]+(pb[1]-pa[1])*ta;}
+    }
+  }
+
+  for(let i=0;i<MN;i++){
+    const p=mParticles[i], t=mTargets[i]; if(!t) continue;
+    if(isExp){p.vx+=(Math.random()-0.5)*3;p.vy+=(Math.random()-0.5)*3;p.vx*=0.91;p.vy*=0.91;}
+    else{
+      const dx=t[0]-p.x, dy=t[1]-p.y;
+      const nm=isCube?0.2:chaos*2.8;
+      const nx=mnoise(p.x*0.004+mTick*0.004*spd,p.phase)*nm;
+      const ny=mnoise(p.y*0.004+mTick*0.003*spd,p.phaseY)*nm;
+      const pull=isCube?0.042*p.mass:0.024*p.mass*(1+chaos*0.3);
+      const fric=isCube?0.80:p.friction;
+      p.vx=(p.vx+dx*pull+nx)*fric; p.vy=(p.vy+dy*pull+ny)*fric;
+    }
+    p.x+=p.vx; p.y+=p.vy;
+    const sz=p.baseSize*(0.35+p.z*0.8);
+    const alpha=isExp?0.2:(0.5+p.z*0.45);
+    mctx.beginPath(); mctx.arc(p.x,p.y,Math.max(0.1,sz),0,Math.PI*2);
+    mctx.fillStyle=`rgba(${r},${g},${b},${Math.min(1,alpha)})`; mctx.fill();
+  }
+  if(isExp){mExplodeTimer++;if(mExplodeTimer>24){mExploding=false;mExplodeTimer=0;}}
+  requestAnimationFrame(mDraw);
+}
+
+function mSetSubject(subjId, customColor, customShape, customPts){
+  const baseSubjs=[
+    {id:0,accent:'#b8a47a',rgb:[184,164,122],shape:'human',chaos:0.26,speed:0.5},
+    {id:1,accent:'#9b3f3f',rgb:[155,63,63],shape:'vortex',chaos:0.94,speed:2.1},
+    {id:2,accent:'#6b9ea8',rgb:[107,158,168],shape:'expand',chaos:0.09,speed:0.3},
+    {id:3,accent:'#00c8ff',rgb:[0,200,255],shape:'cube',chaos:0.18,speed:0.75}
+  ];
+
+  let subj;
+  if(customShape){
+    const base = baseSubjs.find(s=>s.shape===customShape)||baseSubjs[0];
+    const accent = customColor||base.accent;
+    subj = {...base, accent, rgb:hexToRgb(accent), shape:customShape};
+  } else {
+    subj = baseSubjs.find(s=>s.id===subjId)||baseSubjs[0];
+    if(customColor) subj = {...subj, accent:customColor, rgb:hexToRgb(customColor)};
+  }
+
+  mExploding=true; mExplodeTimer=0;
+  mSubj = subj;
+  mTargets = mComputeTargets(subj.shape, subj.accent, customPts||null);
+
+  const nameEl = document.getElementById('mini-subject-name');
+  nameEl.textContent = customShape ? (customShape.charAt(0).toUpperCase()+customShape.slice(1)) : subjects.find(s=>s.id===subjId)?.title||'';
+  nameEl.style.color = subj.accent;
+}
+
+window.addEventListener('resize', mResize);
+mResize(); mInitParticles(); mDraw();
+
+// Show current subject in mini preview on tab switch
+function updateMiniPreview(){
+  mSetSubject(currentSubjId, null, null, null);
+}
 
 buildTabs();
 </script>
