@@ -353,7 +353,16 @@ function buildSidebar(){
 
 // ── BroadcastChannel — listen to Studio commands ──
 const bc = new BroadcastChannel('insight_studio');
+
+// announce presence immediately and respond to pings
+bc.postMessage({type:'canvas_ready'});
+window.addEventListener('beforeunload', ()=>bc.postMessage({type:'canvas_closed'}));
+
 bc.onmessage = (e) => {
+  if(e.data && e.data.type === 'studio_ping'){
+    bc.postMessage({type:'canvas_ready'});
+    return;
+  }
   const cmd = e.data;
   if(!cmd||!cmd.type) return;
 
