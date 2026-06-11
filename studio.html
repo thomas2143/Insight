@@ -48,9 +48,10 @@ html,body { width:100%; height:100vh; overflow:hidden; background:var(--bg); col
 /* ── Left: preview + script ── */
 #left-panel {
   display:grid;
-  grid-template-rows:40% 1fr;
+  grid-template-rows:35% 1fr;
   border-right:0.5px solid var(--border);
   overflow:hidden;
+  min-height:0;
 }
 
 /* Mini canvas */
@@ -78,7 +79,7 @@ html,body { width:100%; height:100vh; overflow:hidden; background:var(--bg); col
 }
 
 /* Script area */
-#script-wrap { display:flex; flex-direction:column; overflow:hidden; }
+#script-wrap { display:flex; flex-direction:column; overflow:hidden; min-height:0; flex:1; }
 #script-toolbar {
   display:flex; align-items:center; justify-content:space-between;
   padding:8px 16px; border-bottom:0.5px solid var(--border); flex-shrink:0;
@@ -93,7 +94,7 @@ html,body { width:100%; height:100vh; overflow:hidden; background:var(--bg); col
 #btn-parse:hover { color:var(--accent); border-color:var(--accent); }
 
 #script-textarea {
-  flex:1; background:transparent; border:none; outline:none; resize:none;
+  flex:1; min-height:0; background:transparent; border:none; outline:none; resize:none;
   color:rgba(240,234,216,0.75); font-family:'Outfit',sans-serif;
   font-size:12px; font-weight:200; line-height:1.8; padding:14px 16px;
   scrollbar-width:none;
@@ -102,7 +103,7 @@ html,body { width:100%; height:100vh; overflow:hidden; background:var(--bg); col
 #script-textarea::-webkit-scrollbar { display:none; }
 
 #word-display {
-  flex:1; padding:14px 16px; overflow-y:auto; scrollbar-width:none;
+  flex:1; min-height:0; padding:14px 16px; overflow-y:auto; scrollbar-width:none;
   font-family:'Cormorant Garamond',serif; font-size:16px; font-weight:300;
   line-height:2.2; color:rgba(240,234,216,0.85); letter-spacing:0.02em;
   display:none;
