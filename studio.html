@@ -557,7 +557,7 @@ document.querySelectorAll('.pill').forEach(p=>p.onclick=()=>{
 
 // ── Preview & Apply ──
 document.getElementById('btn-preview-apply').onclick=()=>{
-  if(selIdx===null) return;
+  if(selIdx===null&&document.getElementById('we-shape').value==='') return;
   const shape=document.getElementById('we-shape').value;
   const trans=document.querySelector('.pill.active')?.dataset.t||'smooth';
   const tag=shape?{shape,color:editColor,transition:trans}:null;
@@ -570,9 +570,12 @@ document.getElementById('btn-preview-apply').onclick=()=>{
 
   // preview on mini canvas
   if(shape){
-    const s=SUBJECTS.find(x=>x.shape===shape)||SUBJECTS[0];
-    mSet(shape, editColor, rgb(editColor), s.chaos, s.speed, shape==='custom'?customPts:null);
-    document.getElementById('preview-word').textContent='"'+(sd().words[selIdx]?.text||'')+'"';
+    const baseSubj=SUBJECTS.find(x=>x.shape===shape)||SUBJECTS[subjId];
+    const chaos=baseSubj?baseSubj.chaos:0.2;
+    const speed=baseSubj?baseSubj.speed:0.5;
+    mSet(shape, editColor, rgb(editColor), chaos, speed, shape==='custom'?customPts:null);
+    const wordText=selIdx!==null?(sd().words[selIdx]?.text||''):'';
+    document.getElementById('preview-word').textContent=wordText?'"'+wordText+'"':'';
     document.getElementById('preview-word').style.color=editColor;
   }
 
@@ -762,7 +765,10 @@ function mTargets(shape,customPoints){
 function mSet(shape,accent,rgbVal,chaos,speed,customPoints){
   mS={shape,accent,rgb:rgbVal||rgb(accent),chaos:chaos||0.2,speed:speed||0.5};
   mExp=true; mExpT=0;
-  mT=mTargets(shape,customPoints);
+  mT=mTargets(shape,customPoints||null);
+  // force accent color on preview label
+  document.getElementById('preview-subject').textContent=shape.charAt(0).toUpperCase()+shape.slice(1);
+  document.getElementById('preview-subject').style.color=accent||'#b8a47a';
 }
 
 function mDraw(){
