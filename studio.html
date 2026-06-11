@@ -260,6 +260,31 @@ select:focus { border-color:rgba(240,234,216,0.75); }
   width:4px; height:4px; border-radius:50%; background:var(--accent);
 }
 
+/* connection status */
+#canvas-status {
+  display:flex; align-items:center; gap:8px; padding:4px 12px;
+  border:0.5px solid rgba(255,255,255,0.08); border-radius:2px;
+}
+#canvas-dot {
+  width:6px; height:6px; border-radius:50%;
+  background:#444; transition:background 0.4s; flex-shrink:0;
+}
+#canvas-dot.connected { background:#4a9; animation:pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+#canvas-label {
+  font-size:8px; font-weight:200; letter-spacing:0.16em; text-transform:uppercase;
+  color:rgba(240,234,216,0.4); white-space:nowrap; transition:color 0.4s;
+}
+#canvas-label.connected { color:rgba(240,234,216,0.75); }
+#btn-open-canvas {
+  padding:4px 10px; font-size:8px; font-weight:300; letter-spacing:0.14em;
+  text-transform:uppercase; border:0.5px solid rgba(255,255,255,0.12);
+  border-radius:2px; cursor:pointer; color:rgba(240,234,216,0.5);
+  background:transparent; transition:all 0.2s; white-space:nowrap;
+}
+#btn-open-canvas:hover { color:var(--accent); border-color:var(--accent); }
+#btn-open-canvas.connected { border-color:#4a9; color:#4a9; }
+
 /* toast */
 #toast {
   position:fixed; bottom:70px; left:50%; transform:translateX(-50%) translateY(8px);
@@ -279,6 +304,11 @@ select:focus { border-color:rgba(240,234,216,0.75); }
     <div id="header-title">I<span>N</span>SIGHT <span style="font-size:11px;letter-spacing:0.3em;color:rgba(240,234,216,0.4);font-family:'Outfit',sans-serif;font-weight:200;">STUDIO</span></div>
     <div id="subject-tabs"></div>
     <div id="step-hint">① Paste script &nbsp;② Click word &nbsp;③ Play</div>
+    <div id="canvas-status">
+      <div id="canvas-dot"></div>
+      <div id="canvas-label">Canvas disconnected</div>
+      <button id="btn-open-canvas">Open Canvas</button>
+    </div>
   </div>
 
   <!-- Left panel -->
@@ -406,6 +436,55 @@ select:focus { border-color:rgba(240,234,216,0.75); }
 const WPM = 130;
 const VERCEL = 'https://insight-five-phi.vercel.app/api/insight';
 const bc = new BroadcastChannel('insight_studio');
+
+// ── Handshake — know when canvas is connected ──
+let canvasConnected = false;
+let canvasWindow = null;
+
+function setConnected(val){
+  canvasConnected = val;
+  document.getElementById('canvas-dot').classList.toggle('connected', val);
+  document.getElementById('canvas-label').classList.toggle('connected', val);
+  document.getElementById('canvas-label').textContent = val ? 'Canvas connected' : 'Canvas disconnected';
+  document.getElementById('btn-open-canvas').textContent = val ? 'Connected' : 'Open Canvas';
+  document.getElementById('btn-open-canvas').classList.toggle('connected', val);
+}
+
+// listen for canvas responses
+bc.onmessage = (e) => {
+  if(e.data && e.data.type === 'canvas_ready'){
+    setConnected(true);
+  }
+  if(e.data && e.data.type === 'canvas_closed'){
+    setConnected(false);
+  }
+};
+
+// ping canvas every 3 seconds to check if still alive
+setInterval(()=>{
+  bc.postMessage({type:'studio_ping'});
+  // if no response after 4s, mark disconnected
+  setTimeout(()=>{
+    if(canvasConnected){
+      // will be reset by canvas_ready response
+    }
+  }, 1000);
+}, 3000);
+
+// open canvas button
+document.getElementById('btn-open-canvas').onclick = ()=>{
+  if(canvasWindow && !canvasWindow.closed){
+    canvasWindow.focus();
+  } else {
+    canvasWindow = window.open('index.html', 'insight_canvas',
+      'width=1200,height=800,menubar=no,toolbar=no,location=no');
+  }
+  // ping after short delay to get response
+  setTimeout(()=>bc.postMessage({type:'studio_ping'}), 1500);
+};
+
+// send ping on load
+setTimeout(()=>bc.postMessage({type:'studio_ping'}), 500);
 
 // ── Subjects ──
 const SUBJECTS = [
