@@ -59,23 +59,16 @@ html,body { width:100%; height:100vh; overflow:hidden; background:var(--bg); col
   position:relative; overflow:hidden; background:#05050a;
   border-bottom:0.5px solid var(--border);
 }
-#mini-canvas { display:block; width:100%; height:100%; }
-#preview-subject {
-  position:absolute; bottom:14px; left:20px;
-  font-family:'Cormorant Garamond',serif; font-size:18px; font-weight:300;
-  letter-spacing:0.14em; text-transform:uppercase;
-  color:rgba(240,234,216,0.75); pointer-events:none; transition:color 0.5s;
+#preview-frame {
+  width:100%; height:100%; border:none; display:block;
+  pointer-events:none;
 }
 #preview-word {
   position:absolute; bottom:14px; right:20px;
   font-size:9px; font-weight:200; letter-spacing:0.2em; text-transform:uppercase;
-  color:rgba(240,234,216,0.75); pointer-events:none; transition:all 0.4s;
-  font-family:'Outfit',sans-serif;
-}
-#preview-hint {
-  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-  font-size:10px; font-weight:200; letter-spacing:0.2em; text-transform:uppercase;
-  color:rgba(240,234,216,0.75); pointer-events:none; text-align:center; line-height:1.8;
+  color:rgba(240,234,216,0.85); pointer-events:none;
+  font-family:'Outfit',sans-serif; background:rgba(5,5,10,0.7);
+  padding:4px 8px; border-radius:2px;
 }
 
 /* Script area */
@@ -291,12 +284,10 @@ select:focus { border-color:rgba(240,234,216,0.75); }
   <!-- Left panel -->
   <div id="left-panel">
 
-    <!-- Mini canvas preview -->
+    <!-- Live preview via iframe -->
     <div id="preview-wrap">
-      <canvas id="mini-canvas"></canvas>
-      <div id="preview-subject"></div>
+      <iframe id="preview-frame" src="index.html" scrolling="no" frameborder="0"></iframe>
       <div id="preview-word"></div>
-      <div id="preview-hint">Select a subject above<br>to see particles</div>
     </div>
 
     <!-- Script -->
@@ -467,11 +458,7 @@ function switchSubj(id){
   showEmpty();
   if(state.words&&state.words.length) renderWords(state.words);
   else { document.getElementById('word-display').style.display='none'; document.getElementById('script-textarea').style.display='block'; }
-  // update mini canvas
-  mSet(s.shape, s.accent, s.rgb, s.chaos, s.speed, null);
-  document.getElementById('preview-subject').textContent = s.title;
-  document.getElementById('preview-subject').style.color = s.accent;
-  document.getElementById('preview-hint').style.display = 'none';
+
   bc.postMessage({type:'select_subject', subjectId:id});
 }
 
@@ -569,12 +556,8 @@ document.getElementById('btn-preview-apply').onclick=()=>{
   renderWords(sd().words);
   setTimeout(()=>{ const el=document.querySelector(`.sw[data-i="${selIdx}"]`); if(el) selectWord(selIdx,el); },50);
 
-  // preview on mini canvas
+  // update word label
   if(shape){
-    const baseSubj=SUBJECTS.find(x=>x.shape===shape)||SUBJECTS[subjId];
-    const chaos=baseSubj?baseSubj.chaos:0.2;
-    const speed=baseSubj?baseSubj.speed:0.5;
-    mSet(shape, editColor, rgb(editColor), chaos, speed, shape==='custom'?customPts:null);
     const wordText=selIdx!==null?(sd().words[selIdx]?.text||''):'';
     document.getElementById('preview-word').textContent=wordText?'"'+wordText+'"':'';
     document.getElementById('preview-word').style.color=editColor;
@@ -664,9 +647,6 @@ function fireWords(p){
     const k=subjId+':'+i; if(done.has(k)) continue;
     done.add(k);
     bc.postMessage({type:'trigger',shape:w.tag.shape,color:w.tag.color,transition:w.tag.transition,word:w.text,customPoints:w.tag.customPoints||null});
-    // mirror on mini canvas
-    const s=SUBJECTS.find(x=>x.shape===w.tag.shape)||SUBJECTS[subjId];
-    mSet(w.tag.shape,w.tag.color,rgb(w.tag.color),s.chaos,s.speed,w.tag.customPoints||null);
     document.getElementById('preview-word').textContent='"'+w.text+'"';
     document.getElementById('preview-word').style.color=w.tag.color||'var(--accent)';
   }
@@ -706,120 +686,8 @@ document.querySelectorAll('.slot').forEach(slot=>slot.onclick=()=>{
 });
 (()=>{ const raw=localStorage.getItem(PFX+'1'); if(raw){try{const d=JSON.parse(raw);Object.keys(d.SD).forEach(id=>{if(SD[id])Object.assign(SD[id],d.SD[id]);});}catch(e){}} saveSlots(); })();
 
-// ══════════════════════════════════════
-// MINI PARTICLE ENGINE
-// ══════════════════════════════════════
-const mc=document.getElementById('mini-canvas');
-const mctx=mc.getContext('2d');
-var MW=0,MH=0,MN=500;
-var mP=[],mT=[],mTick=0,mExp=false,mExpT=0;
-var mS=null;
-
-// Perlin
-const PP=new Uint8Array(512);
-(()=>{const b=new Uint8Array(256);for(let i=0;i<256;i++)b[i]=i;for(let i=255;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}for(let i=0;i<512;i++)PP[i]=b[i&255];})();
-function pnoise(x,y){
-  const X=Math.floor(x)&255,Y=Math.floor(y)&255;x-=Math.floor(x);y-=Math.floor(y);
-  const u=x*x*x*(x*(x*6-15)+10),v=y*y*y*(y*(y*6-15)+10);
-  const A=PP[X]+Y,B=PP[X+1]+Y;
-  function g(h,x,y){const u=h<8?x:y,v=h<4?y:h===12||h===14?x:0;return((h&1)?-u:u)+((h&2)?-v:v);}
-  function l(a,b,t){return a+t*(b-a);}
-  return l(l(g(PP[A],x,y),g(PP[B],x-1,y),u),l(g(PP[A+1],x,y-1),g(PP[B+1],x-1,y-1),u),v);
-}
-
-function mResize(){ MW=mc.offsetWidth; MH=mc.offsetHeight; mc.width=MW; mc.height=MH; }
-function mInit(){
-  mP=[];
-  for(let i=0;i<MN;i++){const a=Math.random()*Math.PI*2,r=Math.random()*15;mP.push({x:MW/2+Math.cos(a)*r,y:MH/2+Math.sin(a)*r,z:Math.random(),vx:0,vy:0,sz:Math.random()*1.1+0.2,ph:Math.random()*Math.PI*2,phy:Math.random()*Math.PI*2,m:0.7+Math.random()*0.6,f:0.82+Math.random()*0.08});}
-}
-
-function mTargets(shape,customPoints){
-  const cx=MW/2,cy=MH/2,s=Math.min(MW,MH)*0.36;
-  const pts=[];
-  if(shape==='human'){
-    for(let i=0;i<100;i++){const a=Math.random()*Math.PI*2,r=s*0.17*(0.6+Math.random()*0.4);pts.push([cx+Math.cos(a)*r,cy-s*0.43+Math.sin(a)*r]);}
-    for(let i=0;i<200;i++){const t=Math.random(),hw=s*(0.20-t*0.05);pts.push([cx+(Math.random()-0.5)*hw*2,cy-s*0.17+t*s*0.50]);}
-    for(const side of[-1,1])for(let i=0;i<100;i++){const t=Math.random(),sp2=t*t*0.07;pts.push([cx+side*(s*0.06+sp2*s),cy+s*0.33+t*s*0.44]);}
-  } else if(shape==='vortex'){
-    for(let i=0;i<MN;i++){const t=i/MN,arm=i%3,base=(arm/3)*Math.PI*2;const a=base+t*Math.PI*2*5+(Math.random()-0.5)*0.3;const r2=Math.pow(t,0.6)*s*0.9;pts.push([cx+Math.cos(a)*r2,cy+Math.sin(a)*r2]);}
-  } else if(shape==='expand'){
-    const rings=[{r:0,n:15},{r:0.3,n:80},{r:0.6,n:150},{r:0.9,n:180}];
-    for(const ring of rings)for(let i=0;i<ring.n;i++){const a=Math.random()*Math.PI*2;pts.push([cx+Math.cos(a)*ring.r*s,cy+Math.sin(a)*ring.r*s]);}
-  } else if(shape==='cube'){
-    const VERTS=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
-    const EDGES=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
-    const t2=mTick*0.006;
-    function rot(v){let[x,y,z]=v;const a1=t2*0.55;[x,y]=[x*Math.cos(a1)-y*Math.sin(a1),x*Math.sin(a1)+y*Math.cos(a1)];const a2=t2*0.38;[x,z]=[x*Math.cos(a2)-z*Math.sin(a2),x*Math.sin(a2)+z*Math.cos(a2)];return[x,y,z];}
-    function proj(v){const[x,y,z]=rot(v);const f=1/(3.8-z);return[cx+x*f*s*1.6,cy+y*f*s*1.6];}
-    const pr=VERTS.map(proj);
-    const pe=Math.floor(MN/EDGES.length);
-    for(const[ea,eb]of EDGES)for(let i=0;i<pe;i++){const ta=i/pe,pa=pr[ea],pb=pr[eb];pts.push([pa[0]+(pb[0]-pa[0])*ta+(Math.random()-0.5),pa[1]+(pb[1]-pa[1])*ta+(Math.random()-0.5)]);}
-  } else if(shape==='custom'&&customPoints&&customPoints.length){
-    for(const[x,y]of customPoints)pts.push([cx+x*s*0.85,cy+y*s*0.85]);
-  } else {
-    for(let i=0;i<MN;i++){const a=Math.random()*Math.PI*2,r2=(0.2+Math.random()*0.7)*s;pts.push([cx+Math.cos(a)*r2,cy+Math.sin(a)*r2]);}
-  }
-  while(pts.length<MN)pts.push(pts[Math.floor(Math.random()*pts.length)]);
-  return pts.slice(0,MN);
-}
-
-function mSet(shape,accent,rgbVal,chaos,speed,customPoints){
-  mS={shape,accent,rgb:rgbVal||rgb(accent),chaos:chaos||0.2,speed:speed||0.5};
-  mExp=true; mExpT=0;
-  mT=mTargets(shape,customPoints||null);
-  // force accent color on preview label
-  document.getElementById('preview-subject').textContent=shape.charAt(0).toUpperCase()+shape.slice(1);
-  document.getElementById('preview-subject').style.color=accent||'#b8a47a';
-}
-
-function mDraw(){
-  mTick++;
-  mctx.fillStyle=`rgba(5,5,10,${mS&&mS.chaos>0.8?0.62:0.78})`;
-  mctx.fillRect(0,0,MW,MH);
-  if(!mS||!mP||!mP.length){requestAnimationFrame(mDraw);return;}
-
-  // cube: update targets each frame
-  if(mS.shape==='cube'&&!mExp){
-    const cx=MW/2,cy=MH/2,s=Math.min(MW,MH)*0.36;
-    const VERTS=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
-    const EDGES=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
-    const t2=mTick*0.005;
-    function rot(v){let[x,y,z]=v;const a1=t2*0.55;[x,y]=[x*Math.cos(a1)-y*Math.sin(a1),x*Math.sin(a1)+y*Math.cos(a1)];const a2=t2*0.38;[x,z]=[x*Math.cos(a2)-z*Math.sin(a2),x*Math.sin(a2)+z*Math.cos(a2)];return[x,y,z];}
-    function proj(v){const[x,y,z]=rot(v);const f=1/(3.8-z);return[cx+x*f*s*1.6,cy+y*f*s*1.6];}
-    const pr=VERTS.map(proj);
-    const pe=Math.floor(MN/EDGES.length);
-    let pi=0;
-    for(const[ea,eb]of EDGES)for(let i=0;i<pe;i++,pi++){
-      const ta=i/pe,pa=pr[ea],pb=pr[eb];
-      if(mT[pi]){mT[pi][0]=pa[0]+(pb[0]-pa[0])*ta;mT[pi][1]=pa[1]+(pb[1]-pa[1])*ta;}
-    }
-  }
-
-  const[r,g,b]=mS.rgb, chaos=mS.chaos, spd=mS.speed, isExp=mExp;
-  for(let i=0;i<MN;i++){
-    const p=mP[i],t=mT[i]; if(!t) continue;
-    if(isExp){p.vx+=(Math.random()-0.5)*3;p.vy+=(Math.random()-0.5)*3;p.vx*=0.91;p.vy*=0.91;}
-    else{
-      const dx=t[0]-p.x,dy=t[1]-p.y;
-      const nm=mS.shape==='cube'?0.2:chaos*2.8;
-      const nx=pnoise(p.x*0.005+mTick*0.004*spd,p.ph)*nm;
-      const ny=pnoise(p.y*0.005+mTick*0.003*spd,p.phy)*nm;
-      const pull=mS.shape==='cube'?0.042*p.m:0.024*p.m*(1+chaos*0.3);
-      const fric=mS.shape==='cube'?0.80:p.f;
-      p.vx=(p.vx+dx*pull+nx)*fric; p.vy=(p.vy+dy*pull+ny)*fric;
-    }
-    p.x+=p.vx; p.y+=p.vy;
-    const sz=p.sz*(0.35+p.z*0.8);
-    const alpha=isExp?0.25:(0.65+p.z*0.33);
-    mctx.beginPath(); mctx.arc(p.x,p.y,Math.max(0.1,sz),0,Math.PI*2);
-    mctx.fillStyle=`rgba(${r},${g},${b},${Math.min(1,alpha)})`; mctx.fill();
-  }
-  if(isExp){mExpT++;if(mExpT>24){mExp=false;mExpT=0;}}
-  requestAnimationFrame(mDraw);
-}
-
-window.addEventListener('resize',()=>{mResize();if(mS)mT=mTargets(mS.shape,null);});
-mResize(); mInit(); mDraw();
+// Preview uses iframe — no mini engine needed
+window.addEventListener('resize',()=>{});
 // init tabs AFTER mini engine is ready
 buildTabs();
 switchSubj(0);
