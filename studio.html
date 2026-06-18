@@ -642,8 +642,11 @@ document.getElementById('btn-preview-apply').onclick=()=>{
     document.getElementById('preview-word').style.color=editColor;
   }
 
-  // send to main canvas
-  bc.postMessage({type:'preview',shape,color:editColor,transition:trans,word:sd().words[selIdx]?.text||'',customPoints:shape==='custom'&&customPts?customPts:null});
+  // send to main canvas — dual channel: direct postMessage to iframe + BroadcastChannel
+  const cmd={type:'preview',shape,color:editColor,transition:trans,word:sd().words[selIdx]?.text||'',customPoints:shape==='custom'&&customPts?customPts:null};
+  const frame=document.getElementById('preview-frame');
+  if(frame&&frame.contentWindow) frame.contentWindow.postMessage(cmd,'*');
+  bc.postMessage(cmd);
 
   // feedback
   const btn=document.getElementById('btn-preview-apply');
@@ -725,7 +728,10 @@ function fireWords(p){
     const w=words[i]; if(!w||!w.tag) continue;
     const k=subjId+':'+i; if(done.has(k)) continue;
     done.add(k);
-    bc.postMessage({type:'trigger',shape:w.tag.shape,color:w.tag.color,transition:w.tag.transition,word:w.text,customPoints:w.tag.customPoints||null});
+    const tcmd={type:'trigger',shape:w.tag.shape,color:w.tag.color,transition:w.tag.transition,word:w.text,customPoints:w.tag.customPoints||null};
+    const frame=document.getElementById('preview-frame');
+    if(frame&&frame.contentWindow) frame.contentWindow.postMessage(tcmd,'*');
+    bc.postMessage(tcmd);
     document.getElementById('preview-word').textContent='"'+w.text+'"';
     document.getElementById('preview-word').style.color=w.tag.color||'var(--accent)';
   }
@@ -763,9 +769,17 @@ document.querySelectorAll('.slot').forEach(slot=>slot.onclick=()=>{
     else{ document.getElementById('btn-save').onclick(); }
   }
 });
-(()=>{ const raw=localStorage.getItem(PFX+'1'); if(raw){try{const d=JSON.parse(raw);Object.keys(d.SD).forEach(id=>{if(SD[id])Object.assign(SD[id],d.SD[id]);});}catch(e){}} saveSlots(); })();
+(()=>{ saveSlots(); })();
 
 // Preview uses iframe — no mini engine needed
+window.addEventListener('resize',()=>{});
+// init tabs AFTER mini engine is ready
+buildTabs();
+switchSubj(0);
+</script>
+</body>
+</html>
+me — no mini engine needed
 window.addEventListener('resize',()=>{});
 // init tabs AFTER mini engine is ready
 buildTabs();
