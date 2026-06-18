@@ -185,6 +185,7 @@ html,body{width:100%;height:100vh;overflow:hidden;background:#05050a;font-family
     <div id="play-label">Play A→B→C</div>
   </div>
 
+</div>
 
 <!-- AI Shapes bar -->
 <div id="ai-bar">
@@ -203,8 +204,6 @@ html,body{width:100%;height:100vh;overflow:hidden;background:#05050a;font-family
     <button id="btn-ai-gen">Generate</button>
     <span id="ai-status"></span>
   </div>
-</div>
-
 </div>
 
 <script>
