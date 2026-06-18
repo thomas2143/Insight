@@ -358,30 +358,23 @@ const bc = new BroadcastChannel('insight_studio');
 bc.postMessage({type:'canvas_ready'});
 window.addEventListener('beforeunload', ()=>bc.postMessage({type:'canvas_closed'}));
 
-bc.onmessage = (e) => {
-  if(e.data && e.data.type === 'studio_ping'){
-    bc.postMessage({type:'canvas_ready'});
-    return;
-  }
-  const cmd = e.data;
+function handleStudioCmd(cmd){
   if(!cmd||!cmd.type) return;
-
-  if(cmd.type === 'preview'){
-    // show a shape temporarily
-    applyCommand(cmd);
-  }
-  if(cmd.type === 'trigger'){
-    // permanent change during playback
-    applyCommand(cmd);
-  }
-  if(cmd.type === 'explosion'){
-    exploding=true; explodeTimer=0;
-  }
-  if(cmd.type === 'select_subject'){
+  if(cmd.type==='studio_ping'){ bc.postMessage({type:'canvas_ready'}); return; }
+  if(cmd.type==='preview'||cmd.type==='trigger') applyCommand(cmd);
+  if(cmd.type==='explosion'){ exploding=true; explodeTimer=0; }
+  if(cmd.type==='select_subject'){
     const subj=subjects.find(s=>s.id===cmd.subjectId);
     if(subj) selectSubject(subj.id);
   }
-};
+}
+
+bc.onmessage = (e) => handleStudioCmd(e.data);
+
+// Direct postMessage from parent iframe — more reliable than BC in iframe context
+window.addEventListener('message',(e)=>{
+  if(e.data&&e.data.type) handleStudioCmd(e.data);
+});
 
 function applyCommand(cmd){
   const accent=cmd.color||'#b8a47a';
@@ -419,7 +412,7 @@ setTimeout(()=>{
   document.getElementById('app').classList.add('ready');
   document.fonts.ready.then(()=>{
     currentSubj=welcomeSubj;applyTheme(welcomeSubj);
-    setTimeout(()=>{if(!W||!H)resize();targets=textTargets('Welcome');},400);
+    setTimeout(()=>{if(!W||!H)resize();targets=textTargets('INSIGHT');},300);
   });
 },120);
 </script>
