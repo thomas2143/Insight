@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Insight — Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100vh;overflow:hidden;background:#05050a;font-family:'Outfit',sans-serif;color:#f0ead8;}
+:root{--accent:#b8a47a;--bg:#05050a;--border:rgba(255,255,255,0.15);}
+
+/* ── Layout ── */
+#app{display:grid;grid-template-columns:1fr 340px;grid-template-rows:48px 1fr;height:100vh;}
+
+/* ── Header ── */
+#header{
+  grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;border-bottom:0.5px solid var(--border);
+}
+#header-left{display:flex;align-items:center;gap:16px;}
+#logo{font-size:11px;font-weight:300;letter-spacing:0.3em;text-transform:uppercase;color:var(--accent);}
+#subject-name{
+  background:transparent;border:none;border-bottom:0.5px solid var(--border);
+  color:#f0ead8;font-family:'Outfit',sans-serif;font-size:12px;font-weight:200;
+  letter-spacing:0.12em;padding:4px 8px;outline:none;width:220px;
+}
+#subject-name::placeholder{color:rgba(240,234,216,0.4);}
+#header-right{display:flex;align-items:center;gap:10px;}
+.hbtn{
+  padding:5px 14px;font-size:8px;font-weight:300;letter-spacing:0.18em;text-transform:uppercase;
+  border:0.5px solid var(--border);border-radius:2px;cursor:pointer;
+  color:rgba(240,234,216,0.75);background:transparent;transition:all 0.18s;
+}
+.hbtn:hover{color:#f0ead8;border-color:rgba(255,255,255,0.4);}
+.hbtn.primary{border-color:var(--accent);color:var(--accent);}
+.hbtn.primary:hover{background:var(--accent);color:#05050a;}
+#back-btn{color:rgba(240,234,216,0.6);font-size:8px;letter-spacing:0.14em;}
+
+/* ── Canvas area ── */
+#canvas-wrap{position:relative;overflow:hidden;background:#05050a;}
+#canvas{display:block;width:100%;height:100%;}
+#state-label{
+  position:absolute;top:16px;left:50%;transform:translateX(-50%);
+  font-size:9px;font-weight:200;letter-spacing:0.22em;text-transform:uppercase;
+  color:rgba(240,234,216,0.55);pointer-events:none;white-space:nowrap;
+}
+
+/* ── Right panel ── */
+#right{
+  border-left:0.5px solid var(--border);display:flex;flex-direction:column;overflow:hidden;
+}
+
+/* Script section */
+#script-section{flex:0 0 auto;padding:16px;border-bottom:0.5px solid var(--border);}
+.section-label{font-size:7px;font-weight:300;letter-spacing:0.24em;text-transform:uppercase;color:rgba(240,234,216,0.6);margin-bottom:8px;}
+#script-textarea{
+  width:100%;height:80px;background:rgba(255,255,255,0.06);
+  border:0.5px solid var(--border);color:#f0ead8;
+  font-family:'Outfit',sans-serif;font-size:11px;font-weight:200;
+  padding:8px;resize:none;outline:none;border-radius:2px;
+  line-height:1.5;
+}
+#script-textarea::placeholder{color:rgba(240,234,216,0.4);}
+#btn-parse{
+  margin-top:8px;width:100%;padding:6px;font-size:8px;font-weight:300;
+  letter-spacing:0.16em;text-transform:uppercase;border:0.5px solid var(--border);
+  border-radius:2px;cursor:pointer;color:rgba(240,234,216,0.8);background:transparent;transition:all 0.18s;
+}
+#btn-parse:hover{color:#f0ead8;border-color:rgba(255,255,255,0.4);}
+
+/* Words display */
+#words-section{flex:1;padding:16px;overflow-y:auto;border-bottom:0.5px solid var(--border);}
+#word-display{display:flex;flex-wrap:wrap;gap:5px;align-content:flex-start;}
+.sw{
+  padding:4px 8px;font-size:11px;font-weight:200;border-radius:2px;
+  border:0.5px solid rgba(255,255,255,0.2);cursor:pointer;
+  color:rgba(240,234,216,0.85);transition:all 0.15s;
+}
+.sw:hover{border-color:rgba(255,255,255,0.25);color:#f0ead8;}
+.sw.tagged{color:#05050a;font-weight:300;}
+.sw.active{outline:1.5px solid #f0ead8;outline-offset:1px;}
+
+/* Word editor */
+#word-editor{flex:0 0 auto;padding:16px;display:none;flex-direction:column;gap:10px;}
+#we-word{font-size:14px;font-weight:200;letter-spacing:0.08em;color:var(--accent);margin-bottom:2px;}
+
+.we-row{display:flex;flex-direction:column;gap:5px;}
+.we-label{font-size:7px;font-weight:200;letter-spacing:0.2em;text-transform:uppercase;color:rgba(240,234,216,0.6);}
+
+.shape-grid{display:flex;flex-wrap:wrap;gap:4px;}
+.sg{
+  padding:4px 9px;font-size:7px;font-weight:300;letter-spacing:0.12em;text-transform:uppercase;
+  border:0.5px solid rgba(255,255,255,0.22);border-radius:2px;cursor:pointer;
+  color:rgba(240,234,216,0.8);background:transparent;transition:all 0.15s;
+}
+.sg:hover{color:#f0ead8;border-color:rgba(255,255,255,0.5);}
+.sg.active{color:#05050a;font-weight:400;}
+
+.color-row{display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
+.cb{width:15px;height:15px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all 0.15s;flex-shrink:0;}
+.cb:hover{transform:scale(1.2);}
+.cb.active{border-color:rgba(255,255,255,0.8);transform:scale(1.15);}
+.cp{width:20px;height:20px;border:none;background:none;padding:0;cursor:pointer;border-radius:50%;overflow:hidden;flex-shrink:0;}
+
+.trans-row{display:flex;gap:4px;flex-wrap:wrap;}
+.tr{
+  padding:3px 8px;font-size:7px;font-weight:200;letter-spacing:0.1em;text-transform:uppercase;
+  border:0.5px solid rgba(255,255,255,0.2);border-radius:2px;cursor:pointer;
+  color:rgba(240,234,216,0.75);background:transparent;transition:all 0.15s;
+}
+.tr:hover{color:#f0ead8;}
+.tr.active{color:var(--accent);border-color:var(--accent);}
+
+/* Duration row */
+.dur-row{display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
+.dr{
+  padding:3px 8px;font-size:7px;font-weight:200;letter-spacing:0.1em;text-transform:uppercase;
+  border:0.5px solid rgba(255,255,255,0.2);border-radius:2px;cursor:pointer;
+  color:rgba(240,234,216,0.75);background:transparent;transition:all 0.15s;
+}
+.dr:hover{color:#f0ead8;}
+.dr.active{color:var(--accent);border-color:var(--accent);}
+#dur-custom{
+  width:44px;padding:3px 6px;font-size:9px;font-weight:200;
+  background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.2);
+  color:#f0ead8;border-radius:2px;outline:none;text-align:center;
+  font-family:'Outfit',sans-serif;
+}
+#dur-custom::-webkit-inner-spin-button{-webkit-appearance:none;}
+
+/* AI generate row */
+#ai-row{display:flex;gap:6px;align-items:center;}
+#we-prompt{
+  flex:1;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.22);
+  color:#f0ead8;font-family:'Outfit',sans-serif;font-size:10px;padding:5px 8px;
+  border-radius:2px;outline:none;
+}
+#we-prompt::placeholder{color:rgba(240,234,216,0.45);}
+#btn-ai-gen{
+  padding:5px 10px;font-size:7px;font-weight:300;letter-spacing:0.14em;text-transform:uppercase;
+  border:0.5px solid rgba(255,255,255,0.28);border-radius:2px;cursor:pointer;
+  color:rgba(240,234,216,0.85);background:transparent;transition:all 0.18s;white-space:nowrap;
+}
+#btn-ai-gen:hover{color:var(--accent);border-color:var(--accent);}
+#ai-status{font-size:7px;color:rgba(240,234,216,0.55);text-align:right;}
+
+/* AI preset buttons */
+#ai-presets{display:flex;gap:4px;flex-wrap:wrap;}
+.ap{
+  padding:3px 8px;font-size:7px;font-weight:200;letter-spacing:0.1em;text-transform:uppercase;
+  border:0.5px solid rgba(255,255,255,0.2);border-radius:2px;cursor:pointer;
+  color:rgba(240,234,216,0.75);background:transparent;transition:all 0.15s;
+}
+.ap:hover{color:#f0ead8;}
+.ap.loaded{border-color:var(--accent);color:var(--accent);}
+.ap.loading{opacity:0.3;pointer-events:none;}
+
+#btn-tag{
+  width:100%;padding:7px;font-size:8px;font-weight:300;letter-spacing:0.18em;text-transform:uppercase;
+  border:0.5px solid var(--accent);border-radius:2px;cursor:pointer;
+  color:var(--accent);background:transparent;transition:all 0.18s;
+}
+#btn-tag:hover{background:var(--accent);color:#05050a;}
+#btn-untag{
+  width:100%;padding:5px;font-size:7px;font-weight:200;letter-spacing:0.14em;text-transform:uppercase;
+  border:0.5px solid rgba(255,255,255,0.18);border-radius:2px;cursor:pointer;
+  color:rgba(240,234,216,0.6);background:transparent;margin-top:4px;
+}
+#btn-untag:hover{color:rgba(240,234,216,0.9);}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Header -->
+  <div id="header">
+    <div id="header-left">
+      <div id="logo">Insight</div>
+      <input id="subject-name" type="text" placeholder="Subject title…">
+    </div>
+    <div id="header-right">
+      <button class="hbtn" id="back-btn" onclick="location.href='index.html'">← Library</button>
+      <button class="hbtn" id="btn-preview">Preview</button>
+      <button class="hbtn primary" id="btn-save">Save</button>
+    </div>
+  </div>
+
+  <!-- Canvas -->
+  <div id="canvas-wrap">
+    <canvas id="canvas"></canvas>
+    <div id="state-label">Select a word to assign a shape</div>
+  </div>
+
+  <!-- Right panel -->
+  <div id="right">
+
+    <!-- Script -->
+    <div id="script-section">
+      <div class="section-label">Script</div>
+      <textarea id="script-textarea" placeholder="Paste your text here…"></textarea>
+      <button id="btn-parse">Parse words →</button>
+    </div>
+
+    <!-- Words -->
+    <div id="words-section">
+      <div class="section-label">Words</div>
+      <div id="word-display"></div>
+    </div>
+
+    <!-- Word editor -->
+    <div id="word-editor">
+      <div id="we-word"></div>
+
+      <div class="we-row">
+        <div class="we-label">Shape</div>
+        <div class="shape-grid" id="shape-grid">
+          <button class="sg" data-shape="human">Human</button>
+          <button class="sg" data-shape="vortex">Vortex</button>
+          <button class="sg" data-shape="expand">Expand</button>
+          <button class="sg" data-shape="cube">Cube</button>
+          <button class="sg" data-shape="scatter">Scatter</button>
+        </div>
+      </div>
+
+      <div class="we-row">
+        <div class="we-label">Color</div>
+        <div class="color-row" id="color-row">
+          <div class="cb active" data-color="#b8a47a" style="background:#b8a47a"></div>
+          <div class="cb" data-color="#9b3f3f" style="background:#9b3f3f"></div>
+          <div class="cb" data-color="#6b9ea8" style="background:#6b9ea8"></div>
+          <div class="cb" data-color="#00c8ff" style="background:#00c8ff"></div>
+          <div class="cb" data-color="#9b7ec8" style="background:#9b7ec8"></div>
+          <div class="cb" data-color="#c87e9b" style="background:#c87e9b"></div>
+          <div class="cb" data-color="#e8e0d0" style="background:#e8e0d0"></div>
+          <input type="color" class="cp" id="color-picker" value="#b8a47a">
+        </div>
+      </div>
+
+      <div class="we-row">
+        <div class="we-label">Transition</div>
+        <div class="trans-row" id="trans-row">
+          <button class="tr active" data-trans="smooth">Smooth</button>
+          <button class="tr" data-trans="explosion">Explosion</button>
+          <button class="tr" data-trans="wave">Wave</button>
+          <button class="tr" data-trans="dissolve">Dissolve</button>
+          <button class="tr" data-trans="pulse">Pulse</button>
+          <button class="tr" data-trans="spiral">Spiral</button>
+        </div>
+      </div>
+
+      <div class="we-row">
+        <div class="we-label">Duration (auto-play)</div>
+        <div class="dur-row" id="dur-row">
+          <button class="dr" data-dur="2">2s</button>
+          <button class="dr" data-dur="4">4s</button>
+          <button class="dr active" data-dur="6">6s</button>
+          <button class="dr" data-dur="10">10s</button>
+          <button class="dr" data-dur="16">16s</button>
+          <input type="number" id="dur-custom" min="1" max="120" placeholder="—" title="Custom seconds">
+        </div>
+      </div>
+
+      <div class="we-row">
+        <div class="we-label">AI Shape</div>
+        <div id="ai-presets">
+          <button class="ap" data-shape="brain" data-prompt="a human brain with two hemispheres">Brain</button>
+          <button class="ap" data-shape="house" data-prompt="a simple house with roof and walls">House</button>
+          <button class="ap" data-shape="money" data-prompt="a dollar sign currency symbol">Money</button>
+          <button class="ap" data-shape="tree" data-prompt="a tree with trunk and round canopy">Tree</button>
+          <button class="ap" data-shape="cat" data-prompt="a sitting cat silhouette">Cat</button>
+        </div>
+        <div id="ai-row">
+          <input type="text" id="we-prompt" placeholder="Describe a custom shape…">
+          <button id="btn-ai-gen">Generate</button>
+        </div>
+        <div id="ai-status"></div>
+      </div>
+
+      <button id="btn-tag">Apply to word</button>
+      <button id="btn-untag">Remove tag</button>
+    </div>
+
+  </div>
+</div>
+
+<script src="engine.js"></script>
+<script>
+'use strict';
+
+// ── Init engine ──
+engineInit(document.getElementById('canvas'));
+// Resize canvas to its container
+function resizeCanvas(){
+  const wrap = document.getElementById('canvas-wrap');
+  const c = document.getElementById('canvas');
+  c.width = wrap.clientWidth;
+  c.height = wrap.clientHeight;
+  W = c.width; H = c.height;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+engineDraw();
+
+// ── Subject state ──
+const STORAGE_KEY = 'insight_subjects';
+const urlParams = new URLSearchParams(location.search);
+const editId = urlParams.get('id');
+
+let subject = {
+  id: editId || ('s_'+Date.now()),
+  title: '',
+  script: '',
+  words: [],   // [{text, tag:{shape,color,transition,aiLabel}}]
+  customShapes: {}  // label -> points[]
+};
+
+// Load existing subject if editing
+if(editId){
+  const all = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+  const found = all.find(s=>s.id===editId);
+  if(found){
+    subject = found;
+    document.getElementById('subject-name').value = subject.title||'';
+    document.getElementById('script-textarea').value = subject.script||'';
+    // restore custom shapes into engine
+    Object.entries(subject.customShapes||{}).forEach(([k,v])=>{ aiShapes[k]=v; });
+    if(subject.words&&subject.words.length) renderWords();
+  }
+}
+
+// ── Parse ──
+document.getElementById('btn-parse').onclick = ()=>{
+  const text = document.getElementById('script-textarea').value.trim();
+  if(!text) return;
+  const tokens = text.split(/(\s+)/);
+  const words = [];
+  tokens.forEach(tok=>{ if(tok.trim()) words.push({text:tok.trim(), tag:null}); });
+  subject.script = text;
+  subject.words = words;
+  renderWords();
+  document.getElementById('state-label').textContent = words.length+' words — click one to tag it';
+};
+
+// ── Render words ──
+function renderWords(){
+  const wd = document.getElementById('word-display');
+  wd.innerHTML = '';
+  subject.words.forEach((w,i)=>{
+    const sp = document.createElement('span');
+    sp.className = 'sw';
+    sp.textContent = w.text;
+    if(w.tag){
+      sp.classList.add('tagged');
+      sp.style.background = w.tag.color||'var(--accent)';
+    }
+    sp.onclick = ()=>selectWord(i, sp);
+    wd.appendChild(sp);
+  });
+}
+
+// ── Word selection ──
+let selIdx = null;
+let selShape = null;
+let selColor = '#b8a47a';
+let selTrans = 'smooth';
+let selDur = 6;
+let selAiLabel = null;
+
+function selectWord(idx, el){
+  // deselect previous
+  document.querySelectorAll('.sw').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+  selIdx = idx;
+
+  const w = subject.words[idx];
+  document.getElementById('we-word').textContent = '"'+w.text+'"';
+
+  // restore tag if exists
+  if(w.tag){
+    selShape = w.tag.shape;
+    selColor = w.tag.color||'#b8a47a';
+    selTrans = w.tag.transition||'smooth';
+    selDur = w.tag.duration||6;
+    selAiLabel = w.tag.aiLabel||null;
+  } else {
+    selShape = null;
+    selColor = '#b8a47a';
+    selTrans = 'smooth';
+    selDur = 6;
+    selAiLabel = null;
+  }
+
+  syncEditorUI();
+  document.getElementById('word-editor').style.display = 'flex';
+
+  // preview current shape on canvas
+  if(selShape) previewShape();
+}
+
+function syncEditorUI(){
+  // shapes
+  document.querySelectorAll('.sg').forEach(b=>{
+    const act = b.dataset.shape===selShape;
+    b.classList.toggle('active',act);
+    b.style.background = act?`${selColor}`:'';
+    b.style.color = act?'#05050a':'';
+    b.style.borderColor = act?selColor:'';
+  });
+  // colors
+  const [r,g,b_] = hexRgb(selColor);
+  document.documentElement.style.setProperty('--accent',`rgb(${r},${g},${b_})`);
+  document.querySelectorAll('.cb').forEach(c=>{
+    c.classList.toggle('active', c.dataset.color===selColor);
+  });
+  document.getElementById('color-picker').value = selColor;
+  // transitions
+  document.querySelectorAll('.tr').forEach(b=>b.classList.toggle('active',b.dataset.trans===selTrans));
+  // duration
+  document.querySelectorAll('.dr').forEach(b=>b.classList.toggle('active',+b.dataset.dur===selDur));
+  const preset = document.querySelector(`.dr[data-dur="${selDur}"]`);
+  document.getElementById('dur-custom').value = preset ? '' : selDur;
+  // ai label
+  document.getElementById('ai-status').textContent = selAiLabel?'Using: '+selAiLabel:'';
+}
+
+function previewShape(){
+  if(!selShape) return;
+  const col = hexRgb(selColor);
+  if(selShape.startsWith('custom_')){
+    applyCustomState(selShape.replace('custom_',''), col, 'smooth');
+  } else {
+    applyState(selShape, col, 'smooth');
+  }
+}
+
+// ── Shape buttons ──
+document.querySelectorAll('.sg').forEach(btn=>{
+  btn.onclick=()=>{
+    selShape = btn.dataset.shape;
+    selAiLabel = null;
+    syncEditorUI();
+    previewShape();
+  };
+});
+
+// ── Color swatches ──
+document.querySelectorAll('.cb').forEach(btn=>{
+  btn.onclick=()=>{
+    selColor = btn.dataset.color;
+    syncEditorUI();
+    if(selShape) previewShape();
+  };
+});
+document.getElementById('color-picker').oninput=function(){
+  selColor = this.value;
+  syncEditorUI();
+  if(selShape) previewShape();
+};
+
+// ── Transition buttons ──
+document.querySelectorAll('.tr').forEach(btn=>{
+  btn.onclick=()=>{
+    selTrans=btn.dataset.trans;
+    document.querySelectorAll('.tr').forEach(b=>b.classList.toggle('active',b.dataset.trans===selTrans));
+  };
+});
+
+// ── Duration buttons ──
+document.querySelectorAll('.dr').forEach(btn=>{
+  btn.onclick=()=>{
+    selDur=+btn.dataset.dur;
+    document.querySelectorAll('.dr').forEach(b=>b.classList.toggle('active',+b.dataset.dur===selDur));
+    document.getElementById('dur-custom').value='';
+  };
+});
+document.getElementById('dur-custom').oninput=function(){
+  const v=parseFloat(this.value);
+  if(v>0){ selDur=v; document.querySelectorAll('.dr').forEach(b=>b.classList.remove('active')); }
+};
+
+// ── AI preset buttons ──
+document.querySelectorAll('.ap').forEach(btn=>{
+  btn.onclick=async()=>{
+    const shape=btn.dataset.shape, prompt=btn.dataset.prompt, label=btn.textContent;
+    if(aiShapes[shape]){
+      selShape='custom_'+shape; selAiLabel=label;
+      syncEditorUI(); previewShape();
+      document.getElementById('ai-status').textContent='Using: '+label;
+      return;
+    }
+    btn.classList.add('loading');
+    document.getElementById('ai-status').textContent='Generating '+label+'...';
+    const pts=await generateShape(prompt,label);
+    btn.classList.remove('loading');
+    if(pts){
+      aiShapes[shape]=pts;
+      subject.customShapes[shape]=pts;
+      btn.classList.add('loaded');
+      // add to shape grid
+      addShapeToGrid('custom_'+shape, label);
+      selShape='custom_'+shape; selAiLabel=label;
+      syncEditorUI(); previewShape();
+      document.getElementById('ai-status').textContent='Using: '+label;
+    } else {
+      document.getElementById('ai-status').textContent='Error — try again';
+    }
+  };
+});
+
+// ── Custom AI generate ──
+document.getElementById('btn-ai-gen').onclick=async()=>{
+  const prompt=document.getElementById('we-prompt').value.trim();
+  if(!prompt) return;
+  const btn=document.getElementById('btn-ai-gen');
+  const label=prompt.slice(0,14);
+  btn.textContent='...'; btn.disabled=true;
+  document.getElementById('ai-status').textContent='Generating...';
+  const pts=await generateShape(prompt,label);
+  btn.textContent='Generate'; btn.disabled=false;
+  if(pts){
+    const key='custom_'+Date.now();
+    const shortKey=key.replace('custom_','');
+    aiShapes[shortKey]=pts;
+    subject.customShapes[shortKey]=pts;
+    addShapeToGrid('custom_'+shortKey, label);
+    selShape='custom_'+shortKey; selAiLabel=label;
+    syncEditorUI(); previewShape();
+    document.getElementById('ai-status').textContent='Using: '+label;
+    document.getElementById('we-prompt').value='';
+  } else {
+    document.getElementById('ai-status').textContent='Error — try again';
+  }
+};
+
+function addShapeToGrid(shapeKey, label){
+  const grid=document.getElementById('shape-grid');
+  if(grid.querySelector(`[data-shape="${shapeKey}"]`)) return;
+  const btn=document.createElement('button');
+  btn.className='sg'; btn.dataset.shape=shapeKey; btn.textContent=label;
+  btn.style.borderColor='var(--accent)';
+  btn.onclick=()=>{ selShape=shapeKey; selAiLabel=label; syncEditorUI(); previewShape(); };
+  grid.appendChild(btn);
+}
+
+// ── Apply tag ──
+document.getElementById('btn-tag').onclick=()=>{
+  if(selIdx===null||!selShape) return;
+  subject.words[selIdx].tag={shape:selShape, color:selColor, transition:selTrans, duration:selDur, aiLabel:selAiLabel||null};
+  renderWords();
+  // reselect
+  const els=document.querySelectorAll('.sw');
+  if(els[selIdx]) els[selIdx].classList.add('active');
+  document.getElementById('state-label').textContent='"'+subject.words[selIdx].text+'" tagged';
+};
+
+document.getElementById('btn-untag').onclick=()=>{
+  if(selIdx===null) return;
+  subject.words[selIdx].tag=null;
+  renderWords();
+  document.getElementById('word-editor').style.display='none';
+  selIdx=null;
+};
+
+// ── Save ──
+document.getElementById('btn-save').onclick=()=>{
+  subject.title=document.getElementById('subject-name').value.trim()||'Untitled';
+  subject.script=document.getElementById('script-textarea').value;
+  subject.updatedAt=new Date().toISOString();
+  if(!subject.createdAt) subject.createdAt=subject.updatedAt;
+
+  const all=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+  const idx=all.findIndex(s=>s.id===subject.id);
+  if(idx>=0) all[idx]=subject;
+  else all.unshift(subject);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(all));
+
+  document.getElementById('btn-save').textContent='Saved ✓';
+  setTimeout(()=>document.getElementById('btn-save').textContent='Save',1500);
+};
+
+// ── Preview playback ──
+document.getElementById('btn-preview').onclick=()=>{
+  const words=subject.words.filter(w=>w.tag);
+  if(!words.length){ document.getElementById('state-label').textContent='No tagged words yet'; return; }
+  let i=0;
+  const step=()=>{
+    if(i>=words.length) return;
+    const w=words[i];
+    const col=hexRgb(w.tag.color||'#b8a47a');
+    if(w.tag.shape.startsWith('custom_')){
+      applyCustomState(w.tag.shape.replace('custom_',''),col,w.tag.transition||'smooth');
+    } else {
+      applyState(w.tag.shape,col,w.tag.transition||'smooth');
+    }
+    document.getElementById('state-label').textContent='"'+w.text+'"';
+    i++;
+    if(i<words.length) setTimeout(step,(w.tag.duration||6)*1000);
+  };
+  step();
+};
+</script>
+</body>
+</html>
