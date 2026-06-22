@@ -147,9 +147,17 @@ function hexToRgb(hex){
 const STORAGE_KEY='insight_subjects';
 const SHAPE_PARAMS={human:{chaos:0.26,speed:0.5},vortex:{chaos:0.94,speed:2.1},expand:{chaos:0.09,speed:0.3},cube:{chaos:0.18,speed:0.75},scatter:{chaos:0.5,speed:0.8}};
 
+// ── Sujets hardcodés (historiques) ──
+const HARDCODED_SUBJECTS=[
+  {id:'hc-0',title:"Avatar",desc:"How we interact with the world",accent:"#b8a47a",energyRaw:0.55,rgb:[184,164,122],shape:"human",chaos:0.26,speed:0.5,text:"We are not separate from the world. We are the world, looking at itself."},
+  {id:'hc-1',title:"Hell & Darkness",desc:"Level & scalability from darkness",accent:"#9b3f3f",energyRaw:0.93,rgb:[155,63,63],shape:"vortex",chaos:0.94,speed:2.1,text:"Darkness is not the enemy. It is the material."},
+  {id:'hc-2',title:"Hope",desc:"And its function",accent:"#6b9ea8",energyRaw:0.36,rgb:[107,158,168],shape:"expand",chaos:0.09,speed:0.3,text:"Hope is not optimism. It is the quiet decision to keep building."},
+  {id:'hc-3',title:"Cube Mind",desc:"Thinking in higher dimensions",accent:"#00c8ff",energyRaw:0.71,rgb:[0,200,255],shape:"cube",chaos:0.18,speed:0.75,text:"The mind is a structure that folds through dimensions we have no language for."}
+];
+
 function loadSubjects(){
   const raw=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
-  return raw.map((s,i)=>{
+  const fromStorage=raw.map((s)=>{
     const taggedWords=(s.words||[]).filter(w=>w.tag);
     const firstTag=taggedWords[0]?.tag;
     const accent=firstTag?.color||'#b8a47a';
@@ -158,7 +166,6 @@ function loadSubjects(){
     return{
       _raw:s,
       id:s.id,
-      number:String(i+1).padStart(2,'0'),
       title:s.title||'Untitled',
       desc:taggedWords.length+' tagged words',
       accent,
@@ -170,6 +177,7 @@ function loadSubjects(){
       text:''
     };
   });
+  return [...HARDCODED_SUBJECTS,...fromStorage].map((s,i)=>({...s,number:String(i+1).padStart(2,'0')}));
 }
 
 let subjects=loadSubjects();
